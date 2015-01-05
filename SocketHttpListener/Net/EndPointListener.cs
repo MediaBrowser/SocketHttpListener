@@ -164,6 +164,11 @@ namespace SocketHttpListener.Net
 
         private void ProcessAccept(SocketAsyncEventArgs e)
         {
+            if (_closed)
+            {
+                return;
+            }
+
             // http://msdn.microsoft.com/en-us/library/system.net.sockets.socket.acceptasync%28v=vs.110%29.aspx
             // Under certain conditions ConnectionReset can occur
             // Need to close the socket and start accepting again
@@ -180,7 +185,7 @@ namespace SocketHttpListener.Net
                 ProcessAccept(acceptSocket);
             }
 
-            if (sock != null && !_closed)
+            if (sock != null)
             {
                 // Accept the next connection request
                 StartAccept(e);
