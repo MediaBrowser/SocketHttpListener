@@ -19,12 +19,14 @@ namespace SocketHttpListener.Net
         Hashtable registry;   // Dictionary<HttpListenerContext,HttpListenerContext> 
         Hashtable connections;
         private ILogger _logger;
-
+        private string _certificateLocation;
+ 
         public Action<HttpListenerContext> OnContext { get; set; }
 
-        public HttpListener(ILogger logger)
+        public HttpListener(ILogger logger, string certificateLocation)
         {
             _logger = logger;
+            _certificateLocation = certificateLocation;
             prefixes = new HttpListenerPrefixCollection(logger, this);
             registry = new Hashtable();
             connections = Hashtable.Synchronized(new Hashtable());
@@ -100,6 +102,11 @@ namespace SocketHttpListener.Net
                 CheckDisposed();
                 unsafe_ntlm_auth = value;
             }
+        }
+
+        internal string CertificateLocation
+        {
+            get { return _certificateLocation; }
         }
 
         public void Abort()

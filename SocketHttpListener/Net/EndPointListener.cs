@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Security;
+using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -19,8 +21,7 @@ namespace SocketHttpListener.Net
         Hashtable prefixes;  // Dictionary <ListenerPrefix, HttpListener>
         ArrayList unhandled; // List<ListenerPrefix> unhandled; host = '*'
         ArrayList all;       // List<ListenerPrefix> all;  host = '+'
-        X509Certificate2 cert;
-        AsymmetricAlgorithm key;
+        X509Certificate2 cert;        
         bool secure;
         Dictionary<HttpConnection, HttpConnection> unregistered;
         private readonly ILogger _logger;
@@ -28,14 +29,14 @@ namespace SocketHttpListener.Net
 
         private readonly ManualResetEventSlim _listenForNextRequest = new ManualResetEventSlim(false);
 
-        public EndPointListener(ILogger logger, IPAddress addr, int port, bool secure)
+        public EndPointListener(ILogger logger, IPAddress addr, int port, bool secure, string certificateLocation)
         {
             _logger = logger;
 
             if (secure)
             {
                 this.secure = secure;
-                LoadCertificateAndKey(addr, port);
+                LoadCertificateAndKey(addr, port, certificateLocation);
             }
 
             endpoint = new IPEndPoint(addr, port);
@@ -68,25 +69,31 @@ namespace SocketHttpListener.Net
             _closed = false;
         }
 
-        void LoadCertificateAndKey(IPAddress addr, int port)
+        void LoadCertificateAndKey(IPAddress addr, int port, string certificateLocation)
         {
             // Actually load the certificate
             try
             {
-                string dirname = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                string path = Path.Combine(dirname, ".mono");
-                path = Path.Combine(path, "httplistener");
-                string cert_file = Path.Combine(path, String.Format("{0}.cer", port));
-                if (!File.Exists(cert_file))
-                    return;
-                string pvk_file = Path.Combine(path, String.Format("{0}.pvk", port));
-                if (!File.Exists(pvk_file))
-                    return;
-                cert = new X509Certificate2(cert_file);
-                //key = PrivateKey.CreateFromFile(pvk_file).RSA;
+                _logger.Info("attempting to load pfx: {0}", certificateLocation);                
+                if (!File.Exists(certificateLocation))
+                {                   
+                    _logger.Error("Secure requested, but no certificate found at: {0}", certificateLocation);   
+                    return;                   
+                }
+                
+                X509Certificate2 localCert = new X509Certificate2(certificateLocation);
+
+                if (localCert.PrivateKey == null)
+                {
+                    _logger.Error("Secure requested, no private key included in: {0}", certificateLocation);
+                    return;                   
+                }
+
+                this.cert = localCert;                
             }
-            catch
+            catch(Exception e)
             {
+                _logger.ErrorException("Exception loading certificate: {0}", e, certificateLocation ?? "<NULL>");
                 // ignore errors
             }
         }
@@ -198,7 +205,7 @@ namespace SocketHttpListener.Net
             {
                 var listener = this;
 
-                if (listener.secure && (listener.cert == null || listener.key == null))
+                if (listener.secure && listener.cert == null)
                 {
                     accepted.Close();
                     return;
@@ -206,7 +213,7 @@ namespace SocketHttpListener.Net
 
                 var connectionId = Guid.NewGuid().ToString("N");
 
-                HttpConnection conn = new HttpConnection(_logger, accepted, listener, listener.secure, connectionId);
+                HttpConnection conn = new HttpConnection(_logger, accepted, listener, listener.secure, connectionId, cert);
                 //_logger.Debug("Adding unregistered connection to {0}. Id: {1}", accepted.RemoteEndPoint, connectionId);
                 lock (listener.unregistered)
                 {

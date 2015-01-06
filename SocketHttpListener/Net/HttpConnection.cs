@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -27,8 +28,7 @@ namespace SocketHttpListener.Net
         bool chunked;
         int reuses;
         bool context_bound;
-        bool secure;
-        AsymmetricAlgorithm key;
+        bool secure;        
         int s_timeout = 90000; // 90k ms for first request, 15k ms from then on
         Timer timer;
         IPEndPoint local_ep;
@@ -39,24 +39,22 @@ namespace SocketHttpListener.Net
         private ILogger _logger;
         private readonly string _connectionId;
         
-        public HttpConnection(ILogger logger, Socket sock, EndPointListener epl, bool secure, string connectionId)
+        public HttpConnection(ILogger logger, Socket sock, EndPointListener epl, bool secure, string connectionId, X509Certificate cert)
         {
             _connectionId = connectionId;
             _logger = logger;
             this.sock = sock;
             this.epl = epl;
-            this.secure = secure;
-            //this.key = key;
+            this.secure = secure;            
             if (secure == false)
             {
                 stream = new NetworkStream(sock, false);
             }
             else
             {
-                //SslServerStream ssl_stream = new SslServerStream(new NetworkStream(sock, false), cert, false, true, false);
-                //ssl_stream.PrivateKeyCertSelectionDelegate += OnPVKSelection;
-                //ssl_stream.ClientCertValidationDelegate += OnClientCertificateValidation;
-                //stream = ssl_stream;
+                SslStream ssl_stream = new SslStream(new NetworkStream(sock, false), false);
+                ssl_stream.AuthenticateAsServer(cert);
+                stream = ssl_stream;
             }
             timer = new Timer(OnTimeout, null, Timeout.Infinite, Timeout.Infinite);
             Init();
@@ -78,24 +76,7 @@ namespace SocketHttpListener.Net
         internal X509Certificate2 ClientCertificate
         {
             get { return client_cert; }
-        }
-
-        bool OnClientCertificateValidation(X509Certificate certificate, int[] errors)
-        {
-            if (certificate == null)
-                return true;
-            X509Certificate2 cert = certificate as X509Certificate2;
-            if (cert == null)
-                cert = new X509Certificate2(certificate.GetRawCertData());
-            client_cert = cert;
-            client_cert_errors = errors;
-            return true;
-        }
-
-        AsymmetricAlgorithm OnPVKSelection(X509Certificate certificate, string targetHost)
-        {
-            return key;
-        }
+        }        
 
         void Init()
         {
