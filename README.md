@@ -1,7 +1,7 @@
 SocketHttpListener
 ==================
 
-A standalone HttpListener with support for WebSockets and Mono
+A standalone HttpListener with support for SSL, WebSockets and Mono
 
 As part of Media Browser Server we needed an http server implementation that could support both WebSockets and Mono together on a single port.
 
