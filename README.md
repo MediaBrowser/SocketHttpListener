@@ -21,3 +21,7 @@ In addition, there are a few very minor differences with the mono HttpListener:
 * Resolved an issue parsing http headers from Upnp devices. (We need to submit a pull request to mono for this).
 * Worked around a known issue with Socket.AcceptAsync and windows (Also need to submit a pull request). See: https://github.com/MediaBrowser/SocketHttpListener/blob/master/SocketHttpListener/Net/EndPointListener.cs#L170
 * I have replaced the BeginGetContext with a simple Action delegate. Unlike the .NET HttpListener this is not hooking into http.sys, therefore the only reason for the internal queue was to match the api. Now the consumer can decide how to handle this.
+
+## Available on Nuget
+
+https://www.nuget.org/packages/SocketHttpListener
