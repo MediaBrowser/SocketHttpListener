@@ -30,6 +30,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Patterns.Logging">
+      <HintPath>..\packages\Patterns.Logging.1.0.0.2\lib\portable-net45+sl4+wp71+win8+wpa81\Patterns.Logging.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -48,7 +51,6 @@
     <Compile Include="Fin.cs" />
     <Compile Include="HttpBase.cs" />
     <Compile Include="HttpResponse.cs" />
-    <Compile Include="Logging\ILogger.cs" />
     <Compile Include="Mask.cs" />
     <Compile Include="MessageEventArgs.cs" />
     <Compile Include="Net\AuthenticationSchemes.cs" />
@@ -88,7 +90,15 @@
     <Compile Include="WebSocketFrame.cs" />
     <Compile Include="WebSocketState.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>if $(ConfigurationName) == Release (
+xcopy "$(TargetPath)" "$(SolutionDir)\Nuget\dlls\" /y /d /r /i
+)</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

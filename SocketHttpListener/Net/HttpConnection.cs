@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
-using SocketHttpListener.Logging;
+using Patterns.Logging;
 
 namespace SocketHttpListener.Net
 {

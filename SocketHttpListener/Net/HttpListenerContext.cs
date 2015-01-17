@@ -1,6 +1,6 @@
 using System;
 using System.Security.Principal;
-using SocketHttpListener.Logging;
+using Patterns.Logging;
 using SocketHttpListener.Net.WebSockets;
 
 namespace SocketHttpListener.Net

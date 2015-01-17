@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using SocketHttpListener.Logging;
+using Patterns.Logging;
 
 namespace SocketHttpListener.Net
 {

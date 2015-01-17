@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using SocketHttpListener.Logging;
+using Patterns.Logging;
 
 namespace SocketHttpListener.Net
 {

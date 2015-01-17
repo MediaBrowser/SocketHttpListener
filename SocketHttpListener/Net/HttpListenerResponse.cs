@@ -3,7 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
-using SocketHttpListener.Logging;
+using Patterns.Logging;
 
 namespace SocketHttpListener.Net
 {

@@ -1,7 +1,7 @@
 // TODO: Logging.
 using System;
 using System.Collections;
-using SocketHttpListener.Logging;
+using Patterns.Logging;
 
 namespace SocketHttpListener.Net
 {

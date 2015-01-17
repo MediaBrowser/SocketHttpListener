@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+    <metadata>
+        <id>SocketHttpListener</id>
+        <version>1.0.0.0</version>
+        <title>SocketHttpListener</title>
+        <authors>Media Browser Team</authors>
+        <owners>ebr,Luke,scottisafool</owners>
+        <projectUrl>https://github.com/MediaBrowser/SocketHttpListener</projectUrl>
+        <iconUrl>http://www.mb3admin.com/images/mb3icons1-1.png</iconUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>A standalone HttpListener with support for SSL, WebSockets and Mono.</description>
+        <copyright>Copyright © Media Browser 2013</copyright>
+    </metadata>
+    <files>
+        <file src="dlls\SocketHttpListener.dll" target="lib\net45\SocketHttpListener.dll" />
+    </files>
+</package>

@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using SocketHttpListener.Logging;
+using Patterns.Logging;
 using HttpListener = SocketHttpListener.Net.HttpListener;
 
 namespace SocketHttpListener.Test

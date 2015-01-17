@@ -1,16 +1,12 @@
+using Patterns.Logging;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Security;
-using System.Security.AccessControl;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
-using System.Threading.Tasks;
-using SocketHttpListener.Logging;
 
 namespace SocketHttpListener.Net
 {
@@ -26,8 +22,6 @@ namespace SocketHttpListener.Net
         Dictionary<HttpConnection, HttpConnection> unregistered;
         private readonly ILogger _logger;
         private bool _closed;
-
-        private readonly ManualResetEventSlim _listenForNextRequest = new ManualResetEventSlim(false);
 
         public EndPointListener(ILogger logger, IPAddress addr, int port, bool secure, string certificateLocation)
         {
@@ -56,16 +50,7 @@ namespace SocketHttpListener.Net
             // This is the number TcpListener uses.
             sock.Listen(2147483647);
 
-            var enableFastAccept = true;
-            if (enableFastAccept)
-            {
-                StartAccept(null);
-            }
-            else
-            {
-                Task.Factory.StartNew(BeginAccept, TaskCreationOptions.LongRunning);
-            }
-
+            StartAccept(null);
             _closed = false;
         }
 
@@ -95,49 +80,6 @@ namespace SocketHttpListener.Net
             {
                 _logger.ErrorException("Exception loading certificate: {0}", e, certificateLocation ?? "<NULL>");
                 // ignore errors
-            }
-        }
-
-        private void BeginAccept()
-        {
-            while (!_closed)
-            {
-                _listenForNextRequest.Reset();
-
-                try
-                {
-                    //sock.BeginAccept(null, 0, AcceptReceiveDataCallback, this);
-
-                    // The above overload hangs in mono
-                    sock.BeginAccept(AcceptReceiveDataCallback, this);
-
-                    _listenForNextRequest.Wait();
-                }
-                catch (Exception ex)
-                {
-                    _logger.Error("Error in BeginAccept", ex);
-                }
-            }
-        }
-
-        private void AcceptReceiveDataCallback(IAsyncResult ar)
-        {
-            _listenForNextRequest.Set();
-
-            if (_closed)
-            {
-                return;
-            }
-
-            try
-            {
-                var accepted = sock.EndAccept(ar);
-
-                ProcessAccept(accepted);
-            }
-            catch (Exception ex)
-            {
-                _logger.ErrorException("Error in AcceptReceiveDataCallback", ex);
             }
         }
 
