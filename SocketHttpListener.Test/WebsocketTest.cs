@@ -28,6 +28,7 @@ namespace SocketHttpListener.Test
         private AutoResetEvent clientResetEvent;
         private WebSocketContext webSocketContextServer;
         private bool areEqual;
+        private bool sent;
 
         [ClassInitialize]
         public static void ClassInit(TestContext context)
@@ -48,6 +49,8 @@ namespace SocketHttpListener.Test
         public void TestInit()
         {
             this.areEqual = false;
+            this.sent = false;
+
             this.logger = LoggerFactory.CreateLogger();
             this.listener = new HttpListener(this.logger.Object, pfxLocation);            
             
@@ -70,28 +73,55 @@ namespace SocketHttpListener.Test
             this.logger = null;
             this.webSocketContextServer = null;
             this.areEqual = false;
+            this.sent = false;
         }
 
         [TestMethod]
-        public void LargeWebsocketMessageTest()
+        public void LargeWebSocketMessageTest()
         {
+            RunWebSocketMessageTest("http", "ws", string.Concat(Enumerable.Range(0, 3000000).Select(x => Utility.TEXT_TO_WRITE)));            
+        }
 
-            RunWebSocketTest("http", "ws", string.Concat(Enumerable.Range(0, 3000000).Select(x => Utility.TEXT_TO_WRITE)));            
+        /// <summary>
+        /// This test fails because the largest binary message that can be received correctly by WebSocket4Net is 1016 bytes.
+        /// The bug in in is: https://github.com/kerryjiang/WebSocket4Net/blob/master/WebSocket4Net/WebSocketCommandInfo.cs#L123
+        /// copied is never incremented causing binary messages over 1016 bytes to overwrite one another. Once this is fixed binary should work.
+        /// </summary>
+        [TestMethod]
+        public void LargeWebSocketDataTest()
+        {
+            RunWebSocketDataTest("http", "ws", string.Concat(Enumerable.Range(0, 3000000).Select(x => Utility.TEXT_TO_WRITE)));
+        }
+
+        
+        [TestMethod]
+        public void LargeWebSocketLargestValidDataTest()
+        {
+            RunWebSocketDataTest("http", "ws", string.Concat(Enumerable.Range(0, 1016).Select(x => "A")));
         }
 
         [TestMethod]
         public void TestWebSocketHttpListenAndConnect()
         {
-            RunWebSocketTest("http", "ws", Utility.TEXT_TO_WRITE);
+            RunWebSocketMessageTest("http", "ws", Utility.TEXT_TO_WRITE);
         }
 
         [TestMethod]
         public void TestWebSocketHttpsListenAndConnect()
         {
-            RunWebSocketTest("https", "wss", Utility.TEXT_TO_WRITE);
+            RunWebSocketMessageTest("https", "wss", Utility.TEXT_TO_WRITE);
         }
 
-        private void RunWebSocketTest(string httpPrefix, string wsPrefix, string messageToSend)
+        private void RunWebSocketDataTest(string httpPrefix, string wsPrefix, string messageToSend)
+        {
+            SetupListener(httpPrefix);
+
+            SetupClient(wsPrefix, messageToSend);
+
+            SendAndWaitForResults(Encoding.UTF8.GetBytes(messageToSend));
+        }
+
+        private void RunWebSocketMessageTest(string httpPrefix, string wsPrefix, string messageToSend)
         {
             SetupListener(httpPrefix);
 
@@ -101,14 +131,29 @@ namespace SocketHttpListener.Test
         }
 
         private void SendAndWaitForResults(string valueToSend)
+        {            
+            webSocketContextServer.WebSocket.SendAsync(valueToSend, x =>
+            {
+                sent = x;
+                this.serverResetEvent.Set();
+            });       
+     
+            WaitForResults();
+        }
+
+        private void SendAndWaitForResults(byte[] valueToSend)
         {
-            bool sent = false;
             webSocketContextServer.WebSocket.SendAsync(valueToSend, x =>
             {
                 sent = x;
                 this.serverResetEvent.Set();
             });
 
+            WaitForResults();
+        }
+
+        private void WaitForResults()
+        {
             Assert.IsTrue(this.serverResetEvent.WaitOne(WaitOneTimeout), "Timeout waiting for message to send");
             Assert.IsTrue(sent, "Message not sent");
 
@@ -143,6 +188,14 @@ namespace SocketHttpListener.Test
                 this.logger.Object.Info("Got Message");
 
                 this.areEqual = string.Compare(expectedResult, args.Message, StringComparison.Ordinal) == 0;
+                this.clientResetEvent.Set();
+            };
+
+            this.socket.DataReceived += (sender, args) =>
+            {
+                this.logger.Object.Info("Got Data");
+
+                this.areEqual = string.Compare(expectedResult, Encoding.UTF8.GetString(args.Data), StringComparison.Ordinal) == 0;
                 this.clientResetEvent.Set();
             };
 
