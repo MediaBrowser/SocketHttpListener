@@ -17,7 +17,7 @@ namespace SocketHttpListener.Net
         Hashtable prefixes;  // Dictionary <ListenerPrefix, HttpListener>
         ArrayList unhandled; // List<ListenerPrefix> unhandled; host = '*'
         ArrayList all;       // List<ListenerPrefix> all;  host = '+'
-        X509Certificate2 cert;        
+        X509Certificate2 cert;
         bool secure;
         Dictionary<HttpConnection, HttpConnection> unregistered;
         private readonly ILogger _logger;
@@ -59,24 +59,24 @@ namespace SocketHttpListener.Net
             // Actually load the certificate
             try
             {
-                _logger.Info("attempting to load pfx: {0}", certificateLocation);                
+                _logger.Info("attempting to load pfx: {0}", certificateLocation);
                 if (!File.Exists(certificateLocation))
-                {                   
-                    _logger.Error("Secure requested, but no certificate found at: {0}", certificateLocation);   
-                    return;                   
+                {
+                    _logger.Error("Secure requested, but no certificate found at: {0}", certificateLocation);
+                    return;
                 }
-                
+
                 X509Certificate2 localCert = new X509Certificate2(certificateLocation);
 
                 if (localCert.PrivateKey == null)
                 {
                     _logger.Error("Secure requested, no private key included in: {0}", certificateLocation);
-                    return;                   
+                    return;
                 }
 
-                this.cert = localCert;                
+                this.cert = localCert;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 _logger.ErrorException("Exception loading certificate: {0}", e, certificateLocation ?? "<NULL>");
                 // ignore errors
@@ -123,6 +123,7 @@ namespace SocketHttpListener.Net
             // Need to close the socket and start accepting again
             if (e.SocketError == SocketError.ConnectionReset)
             {
+                _logger.Error("SocketError.ConnectionReset reported. Closing socket.");
                 Close();
                 CreateSocket();
                 return;
