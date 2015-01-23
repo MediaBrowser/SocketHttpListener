@@ -14,10 +14,8 @@ namespace SocketHttpListener.Test
 {
     [TestClass]
     public class HttpConnectionTest
-    {
-        private const string SITE_URL = "localhost:12345/Testing/";
-        private const string TEXT_TO_WRITE = "TESTING12345";
-        private readonly byte[] BYTES_TO_WRITE = Encoding.UTF8.GetBytes(TEXT_TO_WRITE);
+    {        
+        private static readonly byte[] BYTES_TO_WRITE = Encoding.UTF8.GetBytes(Utility.TEXT_TO_WRITE);
         
         private static string pfxLocation;
 
@@ -28,13 +26,7 @@ namespace SocketHttpListener.Test
         [ClassInitialize]
         public static void ClassInit(TestContext context)
         {
-            pfxLocation = Path.GetTempFileName();
-            using (var fileStream = File.OpenWrite(pfxLocation))
-            {
-                Assembly.GetExecutingAssembly()
-                    .GetManifestResourceStream("SocketHttpListener.Test.localhost.pfx")
-                    .CopyTo(fileStream);
-            }
+            pfxLocation = Utility.GetCertificateFilePath();
         }
 
         [ClassCleanup]
@@ -59,11 +51,11 @@ namespace SocketHttpListener.Test
         [TestCleanup]
         public void TestCleanup()
         {
+            ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => false;
+
             this.logger = null;
             ((IDisposable)this.listener).Dispose();
-            this.httpClient.Dispose();
-
-            ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => false;
+            this.httpClient.Dispose();            
         }
 
         [TestMethod]
@@ -78,20 +70,19 @@ namespace SocketHttpListener.Test
             await TestListenAndConnect("http");
         }
 
-        public async Task TestListenAndConnect(string prefix)
+        private async Task TestListenAndConnect(string prefix)
         {
-            string url = string.Format("{0}://{1}", prefix, SITE_URL);
-            listener.Prefixes.Add(url);
-            listener.Start();
-            listener.OnContext = x =>
+            string url = string.Format("{0}://{1}", prefix, Utility.SITE_URL);
+            this.listener.Prefixes.Add(url);
+            this.listener.Start();
+            this.listener.OnContext = async x =>
             {
-                Console.WriteLine(x.Request.HttpMethod);
-                x.Response.OutputStream.Write(BYTES_TO_WRITE, 0, BYTES_TO_WRITE.Length);
+                await x.Response.OutputStream.WriteAsync(BYTES_TO_WRITE, 0, BYTES_TO_WRITE.Length);
                 x.Response.Close();
             };
 
             string result = await this.httpClient.GetStringAsync(url);
-            Assert.AreEqual(TEXT_TO_WRITE, result);
+            Assert.AreEqual(Utility.TEXT_TO_WRITE, result);
         }
     }
 }
