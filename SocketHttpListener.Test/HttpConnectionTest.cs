@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -41,8 +42,7 @@ namespace SocketHttpListener.Test
         [TestInitialize]
         public void TestInit()
         {
-            this.logger = LoggerFactory.CreateLogger();
-            this.listener = new HttpListener(this.logger.Object, pfxLocation);
+            this.logger = LoggerFactory.CreateLogger();            
             this.httpClient = new HttpClient();
 
             ServicePointManager.ServerCertificateValidationCallback += (sender, cert, chain, sslPolicyErrors) => true;
@@ -61,13 +61,78 @@ namespace SocketHttpListener.Test
         [TestMethod]
         public async Task TestHttpsListenAndConnect()
         {
+            CreateListener(pfxLocation);
+
             await TestListenAndConnect("https");
         }
 
         [TestMethod]
         public async Task TestHttpListenAndConnect()
         {
+            CreateListener(pfxLocation);
+
             await TestListenAndConnect("http");
+        }
+
+        [TestMethod]
+        public async Task TestHttpListenAndConnectMissingCert()
+        {            
+            CreateListener(@"C:\d.pfx");
+
+            await TestListenAndConnect("http");
+        }
+
+        [TestMethod]
+        public async Task TestHttpListenAndConnectNoPrivateKeyCert()
+        {
+            string certWithoutKey = Path.GetTempFileName();
+
+            try
+            {
+                RemovePrivateKeyAndWrite(pfxLocation, certWithoutKey);
+
+                CreateListener(certWithoutKey);
+
+                await TestListenAndConnect("http");
+            }
+            finally
+            {
+                File.Delete(certWithoutKey);    
+            }            
+        }
+
+        [TestMethod]
+        public async Task TestHttpListenAndConnectCorruptedCert()
+        {
+
+            string corruptedCert = Path.GetTempFileName();
+
+            try
+            {
+                File.WriteAllBytes(corruptedCert, new byte[] { 0x01, 0x02 });
+
+                CreateListener(corruptedCert);
+
+                await TestListenAndConnect("http");
+            }
+            finally
+            {
+                File.Delete(corruptedCert);
+            }
+        }
+
+        private void RemovePrivateKeyAndWrite(string sourceCertFile, string destCertFile)
+        {
+            X509Certificate2 sourceCert = new X509Certificate2(sourceCertFile);
+
+            sourceCert.PrivateKey = null;
+
+            File.WriteAllBytes(destCertFile, sourceCert.Export(X509ContentType.Pfx, (string)null));
+        }
+
+        private void CreateListener(string pfxLocationLocal)
+        {
+            this.listener = new HttpListener(this.logger.Object, pfxLocationLocal);
         }
 
         private async Task TestListenAndConnect(string prefix)
