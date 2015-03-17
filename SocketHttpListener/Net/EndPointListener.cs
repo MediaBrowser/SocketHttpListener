@@ -120,12 +120,11 @@ namespace SocketHttpListener.Net
 
             // http://msdn.microsoft.com/en-us/library/system.net.sockets.socket.acceptasync%28v=vs.110%29.aspx
             // Under certain conditions ConnectionReset can occur
-            // Need to close the socket and start accepting again
+            // Need to attept to re-accept
             if (e.SocketError == SocketError.ConnectionReset)
             {
-                _logger.Error("SocketError.ConnectionReset reported. Closing socket.");
-                Close();
-                CreateSocket();
+                _logger.Error("SocketError.ConnectionReset reported. Attempting to re-accept.");
+                StartAccept(e);
                 return;
             }
 
