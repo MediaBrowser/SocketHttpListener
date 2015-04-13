@@ -30,7 +30,6 @@ namespace SocketHttpListener.Net
         bool context_bound;
         bool secure;        
         int s_timeout = 90000; // 90k ms for first request, 15k ms from then on
-        Timer timer;
         IPEndPoint local_ep;
         HttpListener last_listener;
         int[] client_cert_errors;
@@ -56,7 +55,6 @@ namespace SocketHttpListener.Net
                 ssl_stream.AuthenticateAsServer(cert);
                 stream = ssl_stream;
             }
-            timer = new Timer(OnTimeout, null, Timeout.Infinite, Timeout.Infinite);
             Init();
         }
 
@@ -147,14 +145,12 @@ namespace SocketHttpListener.Net
             {
                 if (reuses == 1)
                     s_timeout = 15000;
-                timer.Change(Timeout.Infinite, Timeout.Infinite);
                 stream.BeginRead(buffer, 0, BufferSize, onread_cb, this);
             }
             catch (Exception ex)
             {
                 _logger.ErrorException("Error in HttpConnection.BeginReadRequest. ConnectionId: {0}", ex, _connectionId);
                 
-                timer.Change(Timeout.Infinite, Timeout.Infinite);
                 CloseSocket();
                 Unbind();
             }
@@ -201,7 +197,6 @@ namespace SocketHttpListener.Net
 
         void OnReadInternal(IAsyncResult ares)
         {
-            timer.Change(Timeout.Infinite, Timeout.Infinite);
             int nread = -1;
             try
             {
@@ -216,15 +211,7 @@ namespace SocketHttpListener.Net
             }
             catch (Exception ex)
             {
-                //_logger.ErrorException("Error in HttpConnection.OnReadInternal", ex);
-
-                if (ms != null && ms.Length > 0)
-                    SendError();
-                if (sock != null)
-                {
-                    CloseSocket();
-                    Unbind();
-                }
+                OnReadInternalException(ex);
                 return;
             }
 
@@ -268,7 +255,28 @@ namespace SocketHttpListener.Net
                 listener.RegisterContext(context);
                 return;
             }
-            stream.BeginRead(buffer, 0, BufferSize, onread_cb, this);
+
+            try
+            {
+                stream.BeginRead(buffer, 0, BufferSize, onread_cb, this);
+            }
+            catch (IOException ex)
+            {
+                OnReadInternalException(ex);
+            }
+        }
+
+        private void OnReadInternalException(Exception ex)
+        {
+            //_logger.ErrorException("Error in HttpConnection.OnReadInternal", ex);
+
+            if (ms != null && ms.Length > 0)
+                SendError();
+            if (sock != null)
+            {
+                CloseSocket();
+                Unbind();
+            }
         }
 
         void RemoveConnection()
