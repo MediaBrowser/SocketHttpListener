@@ -1,11 +1,13 @@
-using Patterns.Logging;
 using System;
 using System.IO;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
+using Patterns.Logging;
 
 namespace SocketHttpListener.Net
 {
@@ -24,21 +26,25 @@ namespace SocketHttpListener.Net
         RequestStream i_stream;
         ResponseStream o_stream;
         bool chunked;
+        int reuses;
         bool context_bound;
-        bool secure;        
+        bool secure;
+        int s_timeout = 90000; // 90k ms for first request, 15k ms from then on
         IPEndPoint local_ep;
         HttpListener last_listener;
+        int[] client_cert_errors;
+        X509Certificate2 client_cert;
 
-        private readonly ILogger _logger;
+        private ILogger _logger;
         private readonly string _connectionId;
-        
+
         public HttpConnection(ILogger logger, Socket sock, EndPointListener epl, bool secure, string connectionId, X509Certificate cert)
         {
             _connectionId = connectionId;
             _logger = logger;
             this.sock = sock;
             this.epl = epl;
-            this.secure = secure;            
+            this.secure = secure;
             if (secure == false)
             {
                 stream = new NetworkStream(sock, false);
@@ -60,6 +66,16 @@ namespace SocketHttpListener.Net
             }
         }
 
+        internal int[] ClientCertificateErrors
+        {
+            get { return client_cert_errors; }
+        }
+
+        internal X509Certificate2 ClientCertificate
+        {
+            get { return client_cert; }
+        }
+
         void Init()
         {
             context_bound = false;
@@ -77,6 +93,11 @@ namespace SocketHttpListener.Net
         public bool IsClosed
         {
             get { return (sock == null); }
+        }
+
+        public int Reuses
+        {
+            get { return reuses; }
         }
 
         public IPEndPoint LocalEndPoint
@@ -107,6 +128,13 @@ namespace SocketHttpListener.Net
             set { prefix = value; }
         }
 
+        void OnTimeout(object unused)
+        {
+            _logger.Debug("HttpConnection keep alive timer fired. ConnectionId: {0}.", _connectionId);
+            CloseSocket();
+            Unbind();
+        }
+
         public void BeginReadRequest()
         {
             //_logger.Debug("HttpConnection - BeginReadRequest");
@@ -115,12 +143,14 @@ namespace SocketHttpListener.Net
                 buffer = new byte[BufferSize];
             try
             {
+                if (reuses == 1)
+                    s_timeout = 15000;
                 stream.BeginRead(buffer, 0, BufferSize, onread_cb, this);
             }
             catch (Exception ex)
             {
                 _logger.ErrorException("Error in HttpConnection.BeginReadRequest. ConnectionId: {0}", ex, _connectionId);
-                
+
                 CloseSocket();
                 Unbind();
             }
@@ -181,7 +211,7 @@ namespace SocketHttpListener.Net
             }
             catch (Exception ex)
             {
-                OnReadInternalException(ex, ms);
+                OnReadInternalException(ms, ex);
                 return;
             }
 
@@ -195,7 +225,7 @@ namespace SocketHttpListener.Net
                 return;
             }
 
-            if (ProcessInput())
+            if (ProcessInput(ms))
             {
                 if (!context.HaveError)
                     context.Request.FinishInitialization();
@@ -232,11 +262,11 @@ namespace SocketHttpListener.Net
             }
             catch (IOException ex)
             {
-                OnReadInternalException(ex, ms);
+                OnReadInternalException(ms, ex);
             }
         }
 
-        private void OnReadInternalException(Exception ex, Stream ms)
+        private void OnReadInternalException(MemoryStream ms, Exception ex)
         {
             //_logger.ErrorException("Error in HttpConnection.OnReadInternal", ex);
 
@@ -276,7 +306,7 @@ namespace SocketHttpListener.Net
 
         // true -> done processing
         // false -> need more input
-        bool ProcessInput()
+        bool ProcessInput(MemoryStream ms)
         {
             byte[] buffer = ms.GetBuffer();
             int len = (int)ms.Length;
@@ -483,12 +513,14 @@ namespace SocketHttpListener.Net
                     if (chunked && context.Response.ForceCloseChunked == false)
                     {
                         // Don't close. Keep working.
+                        reuses++;
                         Unbind();
                         Init();
                         BeginReadRequest();
                         return;
                     }
 
+                    reuses++;
                     Unbind();
                     Init();
                     BeginReadRequest();
