@@ -150,7 +150,7 @@ namespace SocketHttpListener
             var msg = checkIfValidHandshakeRequest(_context);
             if (msg != null)
             {
-                error("An error has occurred while connecting.");
+                error("An error has occurred while connecting: " + msg);
                 Close(HttpStatusCode.BadRequest);
 
                 return false;
@@ -213,7 +213,7 @@ namespace SocketHttpListener
             }
             catch (Exception ex)
             {
-                error("An exception has occurred while OnClose.");
+                error("An exception has occurred while OnClose.", ex);
             }
         }
 
@@ -353,6 +353,21 @@ namespace SocketHttpListener
                 _messageEventQueue.Enqueue(e);
         }
 
+        private void error(string message, Exception exception)
+        {
+            try
+            {
+                if (exception != null)
+                {
+                    message += ". Exception.Message: " + exception.Message;
+                }
+                OnError.Emit(this, new ErrorEventArgs(message));
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+
         private void error(string message)
         {
             try
@@ -430,7 +445,7 @@ namespace SocketHttpListener
                 reason = wsex.Message;
             }
 
-            error(message ?? code.GetMessage());
+            error(message ?? code.GetMessage(), exception);
             if (_readyState == WebSocketState.Connecting)
                 Close(HttpStatusCode.BadRequest);
             else
@@ -561,7 +576,7 @@ namespace SocketHttpListener
                 }
                 catch (Exception ex)
                 {
-                    error("An exception has occurred while sending a data.");
+                    error("An exception has occurred while sending a data.", ex);
                 }
                 finally
                 {
@@ -653,7 +668,7 @@ namespace SocketHttpListener
                   }
                   catch (Exception ex)
                   {
-                      error("An exception has occurred while callback.");
+                      error("An exception has occurred while callback.", ex);
                   }
               },
               null);
