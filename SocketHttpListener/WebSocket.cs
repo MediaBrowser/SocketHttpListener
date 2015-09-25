@@ -728,7 +728,9 @@ namespace SocketHttpListener
         // As client
         private bool validateSecWebSocketAcceptHeader(string value)
         {
-            return value != null && value == CreateResponseKey(_base64Key);
+			// This is causing disconnections from Java WebSocket
+            return true;
+			//return value != null && value == CreateResponseKey(_base64Key);
         }
 
         // As client
