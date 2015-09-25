@@ -358,9 +358,9 @@ namespace SocketHttpListener
              : null;
     }
 
-    internal static bool IsCompressionExtension (this string value)
+    internal static bool IsCompressionExtension(this string value, CompressionMethod method)
     {
-      return value.StartsWith ("permessage-");
+        return value.StartsWith(method.ToExtensionString());
     }
 
     internal static bool IsPortNumber (this int value)
@@ -583,11 +583,17 @@ namespace SocketHttpListener
       return CompressionMethod.None;
     }
 
-    internal static string ToExtensionString (this CompressionMethod method)
+    internal static string ToExtensionString(
+      this CompressionMethod method, params string[] parameters)
     {
-      return method != CompressionMethod.None
-             ? String.Format ("permessage-{0}", method.ToString ().ToLower ())
-             : String.Empty;
+        if (method == CompressionMethod.None)
+            return String.Empty;
+
+        var m = String.Format("permessage-{0}", method.ToString().ToLower());
+        if (parameters == null || parameters.Length == 0)
+            return m;
+
+        return String.Format("{0}; {1}", m, parameters.ToString("; "));
     }
 
     internal static System.Net.IPAddress ToIPAddress (this string hostNameOrAddress)
@@ -1143,6 +1149,64 @@ namespace SocketHttpListener
       return src.Length > 1 && !srcOrder.IsHostOrder ()
              ? src.Reverse ()
              : src;
+    }
+
+    /// <summary>
+    /// Converts the specified <paramref name="array"/> to a <see cref="string"/> that
+    /// concatenates the each element of <paramref name="array"/> across the specified
+    /// <paramref name="separator"/>.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="string"/> converted from <paramref name="array"/>,
+    /// or <see cref="String.Empty"/> if <paramref name="array"/> is empty.
+    /// </returns>
+    /// <param name="array">
+    /// An array of T to convert.
+    /// </param>
+    /// <param name="separator">
+    /// A <see cref="string"/> that represents the separator string.
+    /// </param>
+    /// <typeparam name="T">
+    /// The type of elements in <paramref name="array"/>.
+    /// </typeparam>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="array"/> is <see langword="null"/>.
+    /// </exception>
+    public static string ToString<T>(this T[] array, string separator)
+    {
+        if (array == null)
+            throw new ArgumentNullException("array");
+
+        var len = array.Length;
+        if (len == 0)
+            return String.Empty;
+
+        if (separator == null)
+            separator = String.Empty;
+
+        var buff = new StringBuilder(64);
+        (len - 1).Times(i => buff.AppendFormat("{0}{1}", array[i].ToString(), separator));
+
+        buff.Append(array[len - 1].ToString());
+        return buff.ToString();
+    }
+
+    /// <summary>
+    /// Executes the specified <c>Action&lt;int&gt;</c> delegate <paramref name="n"/> times.
+    /// </summary>
+    /// <param name="n">
+    /// An <see cref="int"/> is the number of times to execute.
+    /// </param>
+    /// <param name="action">
+    /// An <c>Action&lt;int&gt;</c> delegate that references the method(s) to execute.
+    /// An <see cref="int"/> parameter to pass to the method(s) is the zero-based count of
+    /// iteration.
+    /// </param>
+    public static void Times(this int n, Action<int> action)
+    {
+        if (n > 0 && action != null)
+            for (int i = 0; i < n; i++)
+                action(i);
     }
 
     /// <summary>

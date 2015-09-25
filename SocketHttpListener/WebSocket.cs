@@ -160,9 +160,9 @@ namespace SocketHttpListener
                 !_context.SecWebSocketProtocols.Contains(protocol => protocol == _protocol))
                 _protocol = null;
 
-            var extensions = _context.Headers["Sec-WebSocket-Extensions"];
-            if (extensions != null && extensions.Length > 0)
-                processSecWebSocketExtensionsHeader(extensions);
+            ////var extensions = _context.Headers["Sec-WebSocket-Extensions"];
+            ////if (extensions != null && extensions.Length > 0)
+            ////    processSecWebSocketExtensionsHeader(extensions);
 
             return sendHttpResponse(createHandshakeResponse());
         }
@@ -507,16 +507,16 @@ namespace SocketHttpListener
             {
                 var trimed = extension.Trim();
                 var unprefixed = trimed.RemovePrefix("x-webkit-");
-                if (!compress && unprefixed.IsCompressionExtension())
-                {
-                    var method = unprefixed.ToCompressionMethod();
-                    if (method != CompressionMethod.None)
-                    {
-                        _compression = method;
-                        compress = true;
 
-                        buff.Append(trimed + ", ");
-                    }
+
+                if (!compress && unprefixed.IsCompressionExtension(CompressionMethod.Deflate))
+                {
+                    _compression = CompressionMethod.Deflate;
+                    var str = _compression.ToExtensionString(
+                      "client_no_context_takeover", "server_no_context_takeover");
+
+                    buff.AppendFormat("{0}, ", str);
+                    compress = true;
                 }
             }
 
@@ -746,10 +746,38 @@ namespace SocketHttpListener
             if (!compress)
                 return false;
 
-            var extensions = value.SplitHeaderValue(',');
-            if (extensions.Contains(
-                  extension => extension.Trim() != _compression.ToExtensionString()))
-                return false;
+            foreach (var e in value.SplitHeaderValue(','))
+            {
+                var ext = e.Trim();
+                if (ext.IsCompressionExtension(_compression))
+                {
+                    if (!ext.Contains("server_no_context_takeover"))
+                    {
+                        error("The server hasn't sent back 'server_no_context_takeover'.");
+                        return false;
+                    }
+
+                    ////if (!ext.Contains("client_no_context_takeover"))
+                    ////    _logger.Warn("The server hasn't sent back 'client_no_context_takeover'.");
+
+                    var method = _compression.ToExtensionString();
+                    var invalid = ext.SplitHeaderValue(';').Contains(
+                      t =>
+                      {
+                          t = t.Trim();
+                          return t != method &&
+                                 t != "server_no_context_takeover" &&
+                                 t != "client_no_context_takeover";
+                      });
+
+                    if (invalid)
+                        return false;
+                }
+                else
+                {
+                    return false;
+                }
+            }
 
             _extensions = value;
             return true;
