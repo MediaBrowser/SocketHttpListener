@@ -811,13 +811,15 @@ namespace SocketHttpListener
         // As server
         private bool validateSecWebSocketVersionClientHeader(string value)
         {
-            return value != null && value == _version;
+            return true;
+            //return value != null && value == _version;
         }
 
         // As client
         private bool validateSecWebSocketVersionServerHeader(string value)
         {
-            return value == null || value == _version;
+            return true;
+            //return value == null || value == _version;
         }
 
         private bool writeBytes(byte[] data)
