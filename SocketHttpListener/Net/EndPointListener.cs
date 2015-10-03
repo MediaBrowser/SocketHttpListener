@@ -23,14 +23,14 @@ namespace SocketHttpListener.Net
         private readonly ILogger _logger;
         private bool _closed;
 
-        public EndPointListener(ILogger logger, IPAddress addr, int port, bool secure, string certificateLocation)
+        public EndPointListener(ILogger logger, IPAddress addr, int port, bool secure, X509Certificate2 cert)
         {
             _logger = logger;
 
             if (secure)
             {
                 this.secure = secure;
-                LoadCertificateAndKey(addr, port, certificateLocation);
+                this.cert = cert;
             }
 
             endpoint = new IPEndPoint(addr, port);
@@ -52,35 +52,6 @@ namespace SocketHttpListener.Net
 
             StartAccept(null);
             _closed = false;
-        }
-
-        void LoadCertificateAndKey(IPAddress addr, int port, string certificateLocation)
-        {
-            // Actually load the certificate
-            try
-            {
-                _logger.Info("attempting to load pfx: {0}", certificateLocation);
-                if (!File.Exists(certificateLocation))
-                {
-                    _logger.Error("Secure requested, but no certificate found at: {0}", certificateLocation);
-                    return;
-                }
-
-                X509Certificate2 localCert = new X509Certificate2(certificateLocation);
-
-                if (localCert.PrivateKey == null)
-                {
-                    _logger.Error("Secure requested, no private key included in: {0}", certificateLocation);
-                    return;
-                }
-
-                this.cert = localCert;
-            }
-            catch (Exception e)
-            {
-                _logger.ErrorException("Exception loading certificate: {0}", e, certificateLocation ?? "<NULL>");
-                // ignore errors
-            }
         }
 
         public void StartAccept(SocketAsyncEventArgs acceptEventArg)
