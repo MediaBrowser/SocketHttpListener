@@ -2,6 +2,8 @@
 using System;
 using System.Collections;
 using Patterns.Logging;
+using System.Security.Cryptography.X509Certificates;
+using System.IO;
 
 namespace SocketHttpListener.Net
 {
@@ -19,18 +21,44 @@ namespace SocketHttpListener.Net
         Hashtable registry;   // Dictionary<HttpListenerContext,HttpListenerContext> 
         Hashtable connections;
         private ILogger _logger;
-        private string _certificateLocation;
- 
+        private X509Certificate2 _certificate;
+
         public Action<HttpListenerContext> OnContext { get; set; }
 
-        public HttpListener(ILogger logger, string certificateLocation)
+        public HttpListener()
+            : this(new NullLogger())
+        {
+        }
+
+        public HttpListener(ILogger logger)
         {
             _logger = logger;
-            _certificateLocation = certificateLocation;
             prefixes = new HttpListenerPrefixCollection(logger, this);
             registry = new Hashtable();
             connections = Hashtable.Synchronized(new Hashtable());
             auth_schemes = AuthenticationSchemes.Anonymous;
+        }
+
+        public HttpListener(X509Certificate2 certificate)
+            :this(new NullLogger(), certificate)
+        {
+        }
+
+        public HttpListener(string certificateLocation)
+            : this(new NullLogger(), certificateLocation)
+        {
+        }
+
+        public HttpListener(ILogger logger, X509Certificate2 certificate)
+            : this(logger)
+        {
+            _certificate = certificate;
+        }
+
+        public HttpListener(ILogger logger, string certificateLocation)
+            :this(logger)
+        {
+            LoadCertificateAndKey(certificateLocation);
         }
 
         // TODO: Digest, NTLM and Negotiate require ControlPrincipal
@@ -104,9 +132,38 @@ namespace SocketHttpListener.Net
             }
         }
 
-        internal string CertificateLocation
+        void LoadCertificateAndKey(string certificateLocation)
         {
-            get { return _certificateLocation; }
+            // Actually load the certificate
+            try
+            {
+                _logger.Info("attempting to load pfx: {0}", certificateLocation);
+                if (!File.Exists(certificateLocation))
+                {
+                    _logger.Error("Secure requested, but no certificate found at: {0}", certificateLocation);
+                    return;
+                }
+
+                X509Certificate2 localCert = new X509Certificate2(certificateLocation);
+
+                if (localCert.PrivateKey == null)
+                {
+                    _logger.Error("Secure requested, no private key included in: {0}", certificateLocation);
+                    return;
+                }
+
+                _certificate = localCert;
+            }
+            catch (Exception e)
+            {
+                _logger.ErrorException("Exception loading certificate: {0}", e, certificateLocation ?? "<NULL>");
+                // ignore errors
+            }
+        }
+
+        internal X509Certificate2 Certificate
+        {
+            get { return _certificate; }
         }
 
         public void Abort()
