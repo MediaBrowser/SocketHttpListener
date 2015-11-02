@@ -22,6 +22,7 @@ namespace SocketHttpListener.Net
         Dictionary<HttpConnection, HttpConnection> unregistered;
         private readonly ILogger _logger;
         private bool _closed;
+        private bool _enableDualMode;
 
         public EndPointListener(ILogger logger, IPAddress addr, int port, bool secure, X509Certificate2 cert)
         {
@@ -32,8 +33,17 @@ namespace SocketHttpListener.Net
                 this.secure = secure;
                 this.cert = cert;
             }
-            
-            endpoint = new IPEndPoint(addr, port);
+
+            _enableDualMode = Equals(addr, IPAddress.IPv6Any);
+
+            if (_enableDualMode)
+            {
+                endpoint = new IPEndPoint(IPAddress.IPv6Any, port);
+            }
+            else
+            {
+                endpoint = new IPEndPoint(IPAddress.Any, port);
+            }
 
             prefixes = new Hashtable();
             unregistered = new Dictionary<HttpConnection, HttpConnection>();
@@ -45,8 +55,13 @@ namespace SocketHttpListener.Net
         {
             sock = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
+            if (_enableDualMode)
+            {
+                sock.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false);
+                sock.DualMode = true;
+            }
+
             sock.Bind(endpoint);
-            sock.DualMode = true;
 
             // This is the number TcpListener uses.
             sock.Listen(2147483647);

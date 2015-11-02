@@ -64,7 +64,7 @@ namespace SocketHttpListener.Net
         {
             IPAddress addr;
             if (host == "*" || host == "+")
-                addr = IPAddress.Any;
+                addr = IPAddress.IPv6Any;
             else if (IPAddress.TryParse(host, out addr) == false)
             {
                 try
@@ -73,11 +73,11 @@ namespace SocketHttpListener.Net
                     if (iphost != null)
                         addr = iphost.AddressList[0];
                     else
-                        addr = IPAddress.Any;
+                        addr = IPAddress.IPv6Any;
                 }
                 catch
                 {
-                    addr = IPAddress.Any;
+                    addr = IPAddress.IPv6Any;
                 }
             }
             Hashtable p = null;  // Dictionary<int, EndPointListener>
