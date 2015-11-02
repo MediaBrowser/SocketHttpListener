@@ -32,7 +32,7 @@ namespace SocketHttpListener.Net
                 this.secure = secure;
                 this.cert = cert;
             }
-
+            
             endpoint = new IPEndPoint(addr, port);
 
             prefixes = new Hashtable();
@@ -46,6 +46,7 @@ namespace SocketHttpListener.Net
             sock = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
             sock.Bind(endpoint);
+            sock.DualMode = true;
 
             // This is the number TcpListener uses.
             sock.Listen(2147483647);
