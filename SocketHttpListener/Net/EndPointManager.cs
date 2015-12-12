@@ -60,11 +60,21 @@ namespace SocketHttpListener.Net
             epl.AddPrefix(lp, listener);
         }
 
+        public static bool SupportsDualMode
+        {
+            get { return Environment.OSVersion.Platform == PlatformID.Win32NT; }
+        }
+
+        private static IPAddress GetIpAnyAddress()
+        {
+            return SupportsDualMode ? IPAddress.IPv6Any : IPAddress.Any;
+        }
+
         static EndPointListener GetEPListener(ILogger logger, string host, int port, HttpListener listener, bool secure)
         {
             IPAddress addr;
             if (host == "*" || host == "+")
-                addr = IPAddress.IPv6Any;
+                addr = GetIpAnyAddress();
             else if (IPAddress.TryParse(host, out addr) == false)
             {
                 try
@@ -73,11 +83,11 @@ namespace SocketHttpListener.Net
                     if (iphost != null)
                         addr = iphost.AddressList[0];
                     else
-                        addr = IPAddress.IPv6Any;
+                        addr = GetIpAnyAddress();
                 }
                 catch
                 {
-                    addr = IPAddress.IPv6Any;
+                    addr = GetIpAnyAddress();
                 }
             }
             Hashtable p = null;  // Dictionary<int, EndPointListener>

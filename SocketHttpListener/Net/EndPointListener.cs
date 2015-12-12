@@ -22,7 +22,7 @@ namespace SocketHttpListener.Net
         Dictionary<HttpConnection, HttpConnection> unregistered;
         private readonly ILogger _logger;
         private bool _closed;
-        private bool _enableDualMode;
+        private readonly bool _enableDualMode;
 
         public EndPointListener(ILogger logger, IPAddress addr, int port, bool secure, X509Certificate2 cert)
         {
@@ -35,15 +35,7 @@ namespace SocketHttpListener.Net
             }
 
             _enableDualMode = Equals(addr, IPAddress.IPv6Any);
-
-            if (_enableDualMode)
-            {
-                endpoint = new IPEndPoint(IPAddress.IPv6Any, port);
-            }
-            else
-            {
-                endpoint = new IPEndPoint(IPAddress.Any, port);
-            }
+            endpoint = new IPEndPoint(addr, port);
 
             prefixes = new Hashtable();
             unregistered = new Dictionary<HttpConnection, HttpConnection>();
@@ -57,8 +49,7 @@ namespace SocketHttpListener.Net
 
             if (_enableDualMode)
             {
-                sock.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false);
-                sock.DualMode = true;
+                EnableDualMode(sock);
             }
 
             sock.Bind(endpoint);
@@ -68,6 +59,19 @@ namespace SocketHttpListener.Net
 
             StartAccept(null);
             _closed = false;
+        }
+
+        private void EnableDualMode(Socket socket)
+        {
+            try
+            {
+                sock.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false);
+
+                socket.DualMode = true;
+            }
+            catch (MissingMemberException)
+            {
+            }
         }
 
         public void StartAccept(SocketAsyncEventArgs acceptEventArg)
