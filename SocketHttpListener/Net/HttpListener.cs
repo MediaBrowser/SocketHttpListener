@@ -145,7 +145,7 @@ namespace SocketHttpListener.Net
                 }
 
                 X509Certificate2 localCert = new X509Certificate2(certificateLocation);
-
+                //localCert.PrivateKey = PrivateKey.CreateFromFile(pvk_file).RSA;
                 if (localCert.PrivateKey == null)
                 {
                     _logger.Error("Secure requested, no private key included in: {0}", certificateLocation);
@@ -160,6 +160,20 @@ namespace SocketHttpListener.Net
                 // ignore errors
             }
         }
+
+        //internal IMonoSslStream CreateSslStream(Stream innerStream, bool ownsStream, MSI.MonoRemoteCertificateValidationCallback callback)
+        //{
+        //    lock (registry)
+        //    {
+        //        if (tlsProvider == null)
+        //            tlsProvider = MonoTlsProviderFactory.GetProviderInternal();
+        //        if (tlsSettings == null)
+        //            tlsSettings = MSI.MonoTlsSettings.CopyDefaultSettings();
+        //        if (tlsSettings.RemoteCertificateValidationCallback == null)
+        //            tlsSettings.RemoteCertificateValidationCallback = callback;
+        //        return tlsProvider.CreateSslStream(innerStream, ownsStream, tlsSettings);
+        //    }
+        //}
 
         internal X509Certificate2 Certificate
         {

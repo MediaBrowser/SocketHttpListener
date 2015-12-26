@@ -12,20 +12,22 @@ namespace SocketHttpListener.Net
 {
     sealed class EndPointListener
     {
+        HttpListener listener;
         IPEndPoint endpoint;
         Socket sock;
         Hashtable prefixes;  // Dictionary <ListenerPrefix, HttpListener>
         ArrayList unhandled; // List<ListenerPrefix> unhandled; host = '*'
         ArrayList all;       // List<ListenerPrefix> all;  host = '+'
-        X509Certificate2 cert;
+        X509Certificate cert;
         bool secure;
         Dictionary<HttpConnection, HttpConnection> unregistered;
         private readonly ILogger _logger;
         private bool _closed;
         private readonly bool _enableDualMode;
 
-        public EndPointListener(ILogger logger, IPAddress addr, int port, bool secure, X509Certificate2 cert)
+        public EndPointListener(HttpListener listener, IPAddress addr, int port, bool secure, X509Certificate cert, ILogger logger)
         {
+            this.listener = listener;
             _logger = logger;
 
             if (secure)
@@ -41,6 +43,14 @@ namespace SocketHttpListener.Net
             unregistered = new Dictionary<HttpConnection, HttpConnection>();
 
             CreateSocket();
+        }
+
+        internal HttpListener Listener
+        {
+            get
+            {
+                return listener;
+            }
         }
 
         private void CreateSocket()
@@ -146,7 +156,7 @@ namespace SocketHttpListener.Net
 
                 var connectionId = Guid.NewGuid().ToString("N");
 
-                HttpConnection conn = new HttpConnection(_logger, accepted, listener, listener.secure, connectionId, cert);
+                HttpConnection conn = new HttpConnection(_logger, accepted, listener, listener.secure, listener.cert, connectionId);
                 //_logger.Debug("Adding unregistered connection to {0}. Id: {1}", accepted.RemoteEndPoint, connectionId);
                 lock (listener.unregistered)
                 {

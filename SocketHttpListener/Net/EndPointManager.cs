@@ -108,7 +108,7 @@ namespace SocketHttpListener.Net
             }
             else
             {
-                epl = new EndPointListener(logger, addr, port, secure, listener.Certificate);
+                epl = new EndPointListener(listener, addr, port, secure, listener.Certificate, logger);
                 p[port] = epl;
             }
 

@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -33,12 +34,13 @@ namespace SocketHttpListener.Net
         IPEndPoint local_ep;
         HttpListener last_listener;
         int[] client_cert_errors;
-        X509Certificate2 client_cert;
+        X509Certificate client_cert;
+        SslStream ssl_stream;
 
         private ILogger _logger;
         private readonly string _connectionId;
 
-        public HttpConnection(ILogger logger, Socket sock, EndPointListener epl, bool secure, string connectionId, X509Certificate cert)
+        public HttpConnection(ILogger logger, Socket sock, EndPointListener epl, bool secure, X509Certificate cert, string connectionId)
         {
             _connectionId = connectionId;
             _logger = logger;
@@ -51,6 +53,19 @@ namespace SocketHttpListener.Net
             }
             else
             {
+                //ssl_stream = epl.Listener.CreateSslStream(new NetworkStream(sock, false), false, (t, c, ch, e) =>
+                //{
+                //    if (c == null)
+                //        return true;
+                //    var c2 = c as X509Certificate2;
+                //    if (c2 == null)
+                //        c2 = new X509Certificate2(c.GetRawCertData());
+                //    client_cert = c2;
+                //    client_cert_errors = new int[] { (int)e };
+                //    return true;
+                //});
+                //stream = ssl_stream.AuthenticatedStream;
+
                 SslStream ssl_stream = new SslStream(new NetworkStream(sock, false), false);
                 ssl_stream.AuthenticateAsServer(cert);
                 stream = ssl_stream;
@@ -71,13 +86,19 @@ namespace SocketHttpListener.Net
             get { return client_cert_errors; }
         }
 
-        internal X509Certificate2 ClientCertificate
+        internal X509Certificate ClientCertificate
         {
             get { return client_cert; }
         }
 
         void Init()
         {
+            if (ssl_stream != null)
+            {
+                ssl_stream.AuthenticateAsServer(client_cert);
+                //ssl_stream.AuthenticateAsServer(client_cert, true, (SslProtocols)ServicePointManager.SecurityProtocol, false);
+            }
+
             context_bound = false;
             i_stream = null;
             o_stream = null;
