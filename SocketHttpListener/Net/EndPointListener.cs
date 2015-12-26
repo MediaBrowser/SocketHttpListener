@@ -75,7 +75,7 @@ namespace SocketHttpListener.Net
         {
             try
             {
-                sock.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false);
+                //sock.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, false);
 
                 socket.DualMode = true;
             }
