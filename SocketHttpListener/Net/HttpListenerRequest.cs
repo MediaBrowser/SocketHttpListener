@@ -158,8 +158,8 @@ namespace SocketHttpListener.Net
 
             if (!Uri.TryCreate(base_uri + path, UriKind.Absolute, out url))
             {
-                context.ErrorMessage = "Invalid url: " + base_uri + path;
-                return;
+                context.ErrorMessage = WebUtility.HtmlEncode("Invalid url: " + base_uri + path);
+                return; return;
             }
 
             CreateQueryString(url.Query);

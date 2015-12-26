@@ -183,8 +183,11 @@ namespace SocketHttpListener.Net
             if (o_stream == null)
             {
                 HttpListener listener = context.Listener;
-                bool ign = (listener == null) ? true : listener.IgnoreWriteExceptions;
-                o_stream = new ResponseStream(stream, context.Response, ign, _logger, _connectionId);
+
+                if (listener == null)
+                    return new ResponseStream(stream, context.Response, true, _logger, _connectionId);
+
+                o_stream = new ResponseStream(stream, context.Response, listener.IgnoreWriteExceptions, _logger, _connectionId);
             }
             return o_stream;
         }
@@ -313,22 +316,29 @@ namespace SocketHttpListener.Net
             int used = 0;
             string line;
 
-            try
+            while (true)
             {
-                line = ReadLine(buffer, position, len - position, ref used);
-                position += used;
-            }
-            catch
-            {
-                context.ErrorMessage = "Bad request";
-                context.ErrorStatus = 400;
-                return true;
-            }
+                if (context.HaveError)
+                    return true;
 
-            do
-            {
+                if (position >= len)
+                    break;
+
+                try
+                {
+                    line = ReadLine(buffer, position, len - position, ref used);
+                    position += used;
+                }
+                catch
+                {
+                    context.ErrorMessage = "Bad request";
+                    context.ErrorStatus = 400;
+                    return true;
+                }
+
                 if (line == null)
                     break;
+
                 if (line == "")
                 {
                     if (input_state == InputState.RequestLine)
@@ -356,24 +366,7 @@ namespace SocketHttpListener.Net
                         return true;
                     }
                 }
-
-                if (context.HaveError)
-                    return true;
-
-                if (position >= len)
-                    break;
-                try
-                {
-                    line = ReadLine(buffer, position, len - position, ref used);
-                    position += used;
-                }
-                catch
-                {
-                    context.ErrorMessage = "Bad request";
-                    context.ErrorStatus = 400;
-                    return true;
-                }
-            } while (line != null);
+            }
 
             if (used == len)
             {

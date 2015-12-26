@@ -178,7 +178,12 @@ namespace SocketHttpListener.Net
                 foreach (var value in values)
                 {
                     if (value.IndexOf(',') < 0)
+                    {
+                        if (separated != null)
+                            separated.Add(value);
+
                         continue;
+                    }
 
                     if (separated == null)
                     {
@@ -677,7 +682,7 @@ namespace SocketHttpListener.Net
                 return;
 
             if ((info & headerRestriction.Value) != 0)
-                throw new ArgumentException("This header must be modified with the appropiate property.");
+                throw new ArgumentException("This header must be modified with the appropriate property.");
         }
 
         void CheckHeaderConsistency(HeaderInfo value)
