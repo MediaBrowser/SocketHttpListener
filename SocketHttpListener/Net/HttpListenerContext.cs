@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Security.Principal;
 using Patterns.Logging;
 using SocketHttpListener.Net.WebSockets;

@@ -53,7 +53,6 @@
     <Compile Include="HttpResponse.cs" />
     <Compile Include="Mask.cs" />
     <Compile Include="MessageEventArgs.cs" />
-    <Compile Include="Net\AuthenticationSchemes.cs" />
     <Compile Include="Net\AuthenticationSchemeSelector.cs" />
     <Compile Include="Net\ChunkedInputStream.cs" />
     <Compile Include="Net\ChunkStream.cs" />
@@ -62,7 +61,6 @@
     <Compile Include="Net\CookieException.cs" />
     <Compile Include="Net\EndPointListener.cs" />
     <Compile Include="Net\EndPointManager.cs" />
-    <Compile Include="Net\HttpBasicIdentity.cs" />
     <Compile Include="Net\HttpConnection.cs" />
     <Compile Include="Net\HttpListener.cs" />
     <Compile Include="Net\HttpListenerBasicIdentity.cs" />
@@ -72,7 +70,6 @@
     <Compile Include="Net\HttpListenerResponse.cs" />
     <Compile Include="Net\HttpStatusCode.cs" />
     <Compile Include="Net\HttpStreamAsyncResult.cs" />
-    <Compile Include="Net\HttpUtility.cs" />
     <Compile Include="Net\HttpVersion.cs" />
     <Compile Include="Net\ListenerPrefix.cs" />
     <Compile Include="Net\NetworkCredential.cs" />

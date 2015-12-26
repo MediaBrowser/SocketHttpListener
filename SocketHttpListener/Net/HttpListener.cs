@@ -4,6 +4,7 @@ using System.Collections;
 using Patterns.Logging;
 using System.Security.Cryptography.X509Certificates;
 using System.IO;
+using System.Net;
 
 namespace SocketHttpListener.Net
 {

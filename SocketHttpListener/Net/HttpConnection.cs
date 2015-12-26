@@ -66,8 +66,7 @@ namespace SocketHttpListener.Net
                 //});
                 //stream = ssl_stream.AuthenticatedStream;
 
-                SslStream ssl_stream = new SslStream(new NetworkStream(sock, false), false);
-                ssl_stream.AuthenticateAsServer(cert);
+                ssl_stream = new SslStream(new NetworkStream(sock, false), false);
                 stream = ssl_stream;
             }
             Init();
