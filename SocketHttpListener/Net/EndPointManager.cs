@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Net;
+using System.Net.Sockets;
 using Patterns.Logging;
 
 namespace SocketHttpListener.Net
@@ -60,14 +61,20 @@ namespace SocketHttpListener.Net
             epl.AddPrefix(lp, listener);
         }
 
-        public static bool SupportsDualMode
+        private static bool SupportsDualMode()
         {
-            get { return Environment.OSVersion.Platform == PlatformID.Win32NT; }
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                return true;
+            }
+
+            var type = typeof(Socket);
+            return type.GetProperty("DualMode") != null;
         }
 
         private static IPAddress GetIpAnyAddress()
         {
-            return SupportsDualMode ? IPAddress.IPv6Any : IPAddress.Any;
+            return SupportsDualMode() ? IPAddress.IPv6Any : IPAddress.Any;
         }
 
         static EndPointListener GetEPListener(ILogger logger, string host, int port, HttpListener listener, bool secure)
