@@ -47,6 +47,7 @@ namespace SocketHttpListener.Net
             this.sock = sock;
             this.epl = epl;
             this.secure = secure;
+            this.client_cert = cert;
             if (secure == false)
             {
                 stream = new NetworkStream(sock, false);
