@@ -34,7 +34,7 @@ namespace SocketHttpListener.Net
         IPEndPoint local_ep;
         HttpListener last_listener;
         int[] client_cert_errors;
-        X509Certificate client_cert;
+        X509Certificate cert;
         SslStream ssl_stream;
 
         private ILogger _logger;
@@ -47,7 +47,7 @@ namespace SocketHttpListener.Net
             this.sock = sock;
             this.epl = epl;
             this.secure = secure;
-            this.client_cert = cert;
+            this.cert = cert;
             if (secure == false)
             {
                 stream = new NetworkStream(sock, false);
@@ -86,16 +86,11 @@ namespace SocketHttpListener.Net
             get { return client_cert_errors; }
         }
 
-        internal X509Certificate ClientCertificate
-        {
-            get { return client_cert; }
-        }
-
         void Init()
         {
             if (ssl_stream != null)
             {
-                ssl_stream.AuthenticateAsServer(client_cert);
+                ssl_stream.AuthenticateAsServer(cert);
                 //ssl_stream.AuthenticateAsServer(client_cert, true, (SslProtocols)ServicePointManager.SecurityProtocol, false);
             }
 

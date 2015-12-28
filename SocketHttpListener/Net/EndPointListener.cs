@@ -30,11 +30,8 @@ namespace SocketHttpListener.Net
             this.listener = listener;
             _logger = logger;
 
-            if (secure)
-            {
-                this.secure = secure;
-                this.cert = cert;
-            }
+            this.secure = secure;
+            this.cert = cert;
 
             _enableDualMode = Equals(addr, IPAddress.IPv6Any);
             endpoint = new IPEndPoint(addr, port);
