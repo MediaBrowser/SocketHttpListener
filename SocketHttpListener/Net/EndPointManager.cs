@@ -68,8 +68,9 @@ namespace SocketHttpListener.Net
                 return true;
             }
 
-            var type = typeof(Socket);
-            return type.GetProperty("DualMode") != null;
+            return false;
+            //var type = typeof(Socket);
+            //return type.GetProperty("DualMode") != null;
         }
 
         private static IPAddress GetIpAnyAddress()
