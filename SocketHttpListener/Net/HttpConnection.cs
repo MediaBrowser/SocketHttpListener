@@ -163,6 +163,13 @@ namespace SocketHttpListener.Net
                     s_timeout = 15000;
                 stream.BeginRead(buffer, 0, BufferSize, onread_cb, this);
             }
+            catch (IOException)
+            {
+                _logger.Debug("HttpConnection.BeginReadRequest. Connection closed. ConnectionId: {0}", _connectionId);
+
+                CloseSocket();
+                Unbind();
+            }
             catch (Exception ex)
             {
                 _logger.ErrorException("Error in HttpConnection.BeginReadRequest. ConnectionId: {0}", ex, _connectionId);
