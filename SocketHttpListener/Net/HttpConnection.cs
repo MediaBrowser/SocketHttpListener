@@ -31,7 +31,8 @@ namespace SocketHttpListener.Net
         bool context_bound;
         bool secure;
         int s_timeout = 90000; // 90k ms for first request, 15k ms from then on
-        IPEndPoint local_ep;
+		Timer timer;
+		IPEndPoint local_ep;
         HttpListener last_listener;
         int[] client_cert_errors;
         X509Certificate cert;
@@ -71,6 +72,7 @@ namespace SocketHttpListener.Net
                 ssl_stream.AuthenticateAsServer(cert);
                 stream = ssl_stream;
             }
+            timer = new Timer(OnTimeout, null, Timeout.Infinite, Timeout.Infinite);
             Init();
         }
 
@@ -146,7 +148,7 @@ namespace SocketHttpListener.Net
 
         void OnTimeout(object unused)
         {
-            _logger.Debug("HttpConnection keep alive timer fired. ConnectionId: {0}.", _connectionId);
+            //_logger.Debug("HttpConnection keep alive timer fired. ConnectionId: {0}.", _connectionId);
             CloseSocket();
             Unbind();
         }
@@ -161,6 +163,7 @@ namespace SocketHttpListener.Net
             {
                 if (reuses == 1)
                     s_timeout = 15000;
+                timer.Change(s_timeout, Timeout.Infinite);
                 stream.BeginRead(buffer, 0, BufferSize, onread_cb, this);
             }
             catch (IOException)
@@ -174,6 +177,7 @@ namespace SocketHttpListener.Net
             {
                 _logger.ErrorException("Error in HttpConnection.BeginReadRequest. ConnectionId: {0}", ex, _connectionId);
 
+                timer.Change(Timeout.Infinite, Timeout.Infinite);
                 CloseSocket();
                 Unbind();
             }
@@ -223,6 +227,7 @@ namespace SocketHttpListener.Net
 
         void OnReadInternal(IAsyncResult ares)
         {
+            timer.Change(Timeout.Infinite, Timeout.Infinite);
             int nread = -1;
             try
             {
