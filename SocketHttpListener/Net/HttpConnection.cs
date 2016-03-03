@@ -30,7 +30,7 @@ namespace SocketHttpListener.Net
         int reuses;
         bool context_bound;
         bool secure;
-        int s_timeout = 90000; // 90k ms for first request, 15k ms from then on
+        int s_timeout = 300000; // 90k ms for first request, 15k ms from then on
 		Timer timer;
 		IPEndPoint local_ep;
         HttpListener last_listener;
@@ -161,8 +161,8 @@ namespace SocketHttpListener.Net
                 buffer = new byte[BufferSize];
             try
             {
-                if (reuses == 1)
-                    s_timeout = 15000;
+                //if (reuses == 1)
+                    //s_timeout = 15000;
                 timer.Change(s_timeout, Timeout.Infinite);
                 stream.BeginRead(buffer, 0, BufferSize, onread_cb, this);
             }
@@ -170,6 +170,7 @@ namespace SocketHttpListener.Net
             {
                 _logger.Debug("HttpConnection.BeginReadRequest. Connection closed. ConnectionId: {0}", _connectionId);
 
+                timer.Change(Timeout.Infinite, Timeout.Infinite);
                 CloseSocket();
                 Unbind();
             }
