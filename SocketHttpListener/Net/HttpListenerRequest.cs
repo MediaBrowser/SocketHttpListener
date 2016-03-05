@@ -134,7 +134,7 @@ namespace SocketHttpListener.Net
                 context.ErrorMessage = "Invalid host name";
                 return;
             }
-
+            
             string path;
             Uri raw_uri = null;
             if (MaybeUri(raw_url) && Uri.TryCreate(raw_url, UriKind.Absolute, out raw_uri))
@@ -148,7 +148,7 @@ namespace SocketHttpListener.Net
             if (raw_uri != null)
                 host = raw_uri.Host;
 
-            int colon = host.IndexOf(':');
+            int colon = host.LastIndexOf(':');
             if (colon >= 0)
                 host = host.Substring(0, colon);
 
