@@ -12,13 +12,13 @@ namespace SocketHttpListener.Net
 {
     public sealed class HttpListenerRequest
     {
-		class Context : TransportContext
-		{
-			public override ChannelBinding GetChannelBinding (ChannelBindingKind kind)
-			{
-				throw new NotImplementedException ();
-			}
-		}
+        class Context : TransportContext
+        {
+            public override ChannelBinding GetChannelBinding(ChannelBindingKind kind)
+            {
+                throw new NotImplementedException();
+            }
+        }
 
         string[] accept_types;
         Encoding content_encoding;
@@ -134,7 +134,7 @@ namespace SocketHttpListener.Net
                 context.ErrorMessage = "Invalid host name";
                 return;
             }
-            
+
             string path;
             Uri raw_uri = null;
             if (MaybeUri(raw_url) && Uri.TryCreate(raw_url, UriKind.Absolute, out raw_uri))
@@ -289,36 +289,36 @@ namespace SocketHttpListener.Net
 
                     break;
                 case "content-type":
-                {
-                    var contents = val.Split(';');
-                    foreach (var content in contents)
                     {
-                        var tmp = content.Trim();
-                        if (tmp.StartsWith("charset"))
+                        var contents = val.Split(';');
+                        foreach (var content in contents)
                         {
-                            var charset = tmp.GetValue("=");
-                            if (charset != null && charset.Length > 0)
+                            var tmp = content.Trim();
+                            if (tmp.StartsWith("charset"))
                             {
-                                try
+                                var charset = tmp.GetValue("=");
+                                if (charset != null && charset.Length > 0)
                                 {
+                                    try
+                                    {
 
-                                    // Support upnp/dlna devices - CONTENT-TYPE: text/xml ; charset="utf-8"\r\n
-                                    charset = charset.Trim('"');
-                                    var index = charset.IndexOf('"');
-                                    if (index != -1) charset = charset.Substring(0, index);
+                                        // Support upnp/dlna devices - CONTENT-TYPE: text/xml ; charset="utf-8"\r\n
+                                        charset = charset.Trim('"');
+                                        var index = charset.IndexOf('"');
+                                        if (index != -1) charset = charset.Substring(0, index);
 
-                                    content_encoding = Encoding.GetEncoding(charset);
+                                        content_encoding = Encoding.GetEncoding(charset);
+                                    }
+                                    catch
+                                    {
+                                        context.ErrorMessage = "Invalid Content-Type header: " + charset;
+                                    }
                                 }
-                                catch
-                                {
-                                    context.ErrorMessage = "Invalid Content-Type header: " + charset;
-                                }
+
+                                break;
                             }
-
-                            break;
                         }
                     }
-                }
                     break;
                 case "referer":
                     try
@@ -512,7 +512,7 @@ namespace SocketHttpListener.Net
 
         public bool IsLocal
         {
-            get { return IPAddress.IsLoopback(RemoteEndPoint.Address); }
+            get { return IPAddress.IsLoopback(RemoteEndPoint.Address) || LocalEndPoint.Address.Equals(RemoteEndPoint.Address); }
         }
 
         public bool IsSecureConnection
@@ -634,21 +634,25 @@ namespace SocketHttpListener.Net
             //return context.Connection.ClientCertificate;
         }
 
-		public string ServiceName {
-			get {
-				return null;
-			}
-		}
-		
-		public TransportContext TransportContext {
-			get {
-				return new Context ();
-			}
-		}
+        public string ServiceName
+        {
+            get
+            {
+                return null;
+            }
+        }
+
+        public TransportContext TransportContext
+        {
+            get
+            {
+                return new Context();
+            }
+        }
 
         private bool _websocketRequestWasSet;
         private bool _websocketRequest;
-       
+
         /// <summary>
         /// Gets a value indicating whether the request is a WebSocket connection request.
         /// </summary>
@@ -673,9 +677,9 @@ namespace SocketHttpListener.Net
             }
         }
 
-		public Task<X509Certificate2> GetClientCertificateAsync ()
-		{
-			return Task<X509Certificate2>.Factory.FromAsync (BeginGetClientCertificate, EndGetClientCertificate, null);
-		}
+        public Task<X509Certificate2> GetClientCertificateAsync()
+        {
+            return Task<X509Certificate2>.Factory.FromAsync(BeginGetClientCertificate, EndGetClientCertificate, null);
+        }
     }
 }
