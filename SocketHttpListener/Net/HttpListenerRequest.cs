@@ -137,7 +137,7 @@ namespace SocketHttpListener.Net
 
             string path;
             Uri raw_uri = null;
-            if (MaybeUri(raw_url) && Uri.TryCreate(raw_url, UriKind.Absolute, out raw_uri))
+            if (MaybeUri(raw_url.ToLowerInvariant()) && Uri.TryCreate(raw_url, UriKind.Absolute, out raw_uri))
                 path = raw_uri.PathAndQuery;
             else
                 path = raw_url;
@@ -193,7 +193,7 @@ namespace SocketHttpListener.Net
             }
         }
 
-        internal static bool MaybeUri(string s)
+        static bool MaybeUri(string s)
         {
             int p = s.IndexOf(':');
             if (p == -1)
@@ -216,7 +216,7 @@ namespace SocketHttpListener.Net
         // with "mailto": .12 vs .51  (last check)
         //
         //
-        private static bool IsPredefinedScheme(string scheme)
+        static bool IsPredefinedScheme(string scheme)
         {
             if (scheme == null || scheme.Length < 3)
                 return false;
