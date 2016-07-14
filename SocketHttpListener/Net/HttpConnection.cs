@@ -155,29 +155,17 @@ namespace SocketHttpListener.Net
 
         public void BeginReadRequest()
         {
-            //_logger.Debug("HttpConnection - BeginReadRequest");
-
             if (buffer == null)
                 buffer = new byte[BufferSize];
             try
             {
                 //if (reuses == 1)
-                    //s_timeout = 15000;
+                //    s_timeout = 15000;
                 timer.Change(s_timeout, Timeout.Infinite);
                 stream.BeginRead(buffer, 0, BufferSize, onread_cb, this);
             }
-            catch (IOException)
+            catch
             {
-                _logger.Debug("HttpConnection.BeginReadRequest. Connection closed. ConnectionId: {0}", _connectionId);
-
-                timer.Change(Timeout.Infinite, Timeout.Infinite);
-                CloseSocket();
-                Unbind();
-            }
-            catch (Exception ex)
-            {
-                _logger.ErrorException("Error in HttpConnection.BeginReadRequest. ConnectionId: {0}", ex, _connectionId);
-
                 timer.Change(Timeout.Infinite, Timeout.Infinite);
                 CloseSocket();
                 Unbind();
@@ -197,8 +185,7 @@ namespace SocketHttpListener.Net
                     //context.Response.SendChunked = true;
                     i_stream = new ChunkedInputStream(context, stream, buffer, position, length - position);
                 }
-                else
-                {
+                else {
                     i_stream = new RequestStream(stream, buffer, position, length - position, contentlength);
                 }
             }
@@ -251,7 +238,6 @@ namespace SocketHttpListener.Net
             {
                 //if (ms.Length > 0)
                 //	SendError (); // Why bother?
-                _logger.Debug("Exiting HttpConnection.OnReadInternal because nread=0. ConnectionId: {0}", _connectionId);
                 CloseSocket();
                 Unbind();
                 return;
@@ -287,7 +273,6 @@ namespace SocketHttpListener.Net
                 listener.RegisterContext(context);
                 return;
             }
-
             try
             {
                 stream.BeginRead(buffer, 0, BufferSize, onread_cb, this);
@@ -423,8 +408,7 @@ namespace SocketHttpListener.Net
                 {
                     line_state = LineState.LF;
                 }
-                else
-                {
+                else {
                     current_line.Append((char)b);
                 }
             }
@@ -505,7 +489,7 @@ namespace SocketHttpListener.Net
         {
             if (sock != null)
             {
-                if (!context.Request.IsWebSocketRequest || !force_close)
+                if (!context.Request.IsWebSocketRequest || force_close)
                 {
                     Stream st = GetResponseStream();
                     if (st != null)
@@ -521,14 +505,13 @@ namespace SocketHttpListener.Net
                 if (!force_close)
                     force_close = (context.Response.Headers["connection"] == "close");
                 /*
-                if (!force_close) {
+				if (!force_close) {
 //					bool conn_close = (status_code == 400 || status_code == 408 || status_code == 411 ||
 //							status_code == 413 || status_code == 414 || status_code == 500 ||
 //							status_code == 503);
-
-                    force_close |= (context.Request.ProtocolVersion <= HttpVersion.Version10);
-                }
-                */
+					force_close |= (context.Request.ProtocolVersion <= HttpVersion.Version10);
+				}
+				*/
 
                 if (!force_close && context.Request.FlushInput())
                 {

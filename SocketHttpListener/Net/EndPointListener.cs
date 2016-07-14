@@ -64,7 +64,8 @@ namespace SocketHttpListener.Net
             // This is the number TcpListener uses.
             sock.Listen(2147483647);
 
-            StartAccept(null);
+            Socket dummy = null;
+            StartAccept(null, ref dummy);
             _closed = false;
         }
 
@@ -81,7 +82,7 @@ namespace SocketHttpListener.Net
             }
         }
 
-        public void StartAccept(SocketAsyncEventArgs acceptEventArg)
+        public void StartAccept(SocketAsyncEventArgs acceptEventArg, ref Socket accepted)
         {
             if (acceptEventArg == null)
             {
@@ -94,10 +95,28 @@ namespace SocketHttpListener.Net
                 acceptEventArg.AcceptSocket = null;
             }
 
-            bool willRaiseEvent = sock.AcceptAsync(acceptEventArg);
-            if (!willRaiseEvent)
+            try
             {
-                ProcessAccept(acceptEventArg);
+                bool willRaiseEvent = sock.AcceptAsync(acceptEventArg);
+
+                if (!willRaiseEvent)
+                {
+                    ProcessAccept(acceptEventArg);
+                }
+            }
+            catch
+            {
+                if (accepted != null)
+                {
+                    try
+                    {
+                        accepted.Close();
+                    }
+                    catch
+                    {
+                    }
+                    accepted = null;
+                }
             }
         }
 
@@ -122,7 +141,8 @@ namespace SocketHttpListener.Net
             if (e.SocketError == SocketError.ConnectionReset)
             {
                 _logger.Error("SocketError.ConnectionReset reported. Attempting to re-accept.");
-                StartAccept(e);
+                Socket dummy = null;
+                StartAccept(e, ref dummy);
                 return;
             }
 
@@ -135,7 +155,7 @@ namespace SocketHttpListener.Net
             if (sock != null)
             {
                 // Accept the next connection request
-                StartAccept(e);
+                StartAccept(e, ref acceptSocket);
             }
         }
 
