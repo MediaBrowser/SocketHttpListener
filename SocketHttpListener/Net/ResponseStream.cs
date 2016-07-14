@@ -20,15 +20,10 @@ namespace SocketHttpListener.Net
         bool trailer_sent;
         Stream stream;
 
-        private readonly ILogger _logger;
-        private readonly string _connectionId;
-
-        internal ResponseStream(Stream stream, HttpListenerResponse response, bool ignore_errors, ILogger logger, string connectionId)
+        internal ResponseStream(Stream stream, HttpListenerResponse response, bool ignore_errors)
         {
             this.response = response;
             this.ignore_errors = ignore_errors;
-            _logger = logger;
-            _connectionId = connectionId;
             this.stream = stream;
         }
 
@@ -64,7 +59,6 @@ namespace SocketHttpListener.Net
             if (disposed == false)
             {
                 disposed = true;
-
                 byte[] bytes = null;
                 MemoryStream ms = GetHeaders(true);
                 bool chunked = response.SendChunked;
@@ -92,9 +86,6 @@ namespace SocketHttpListener.Net
 
         MemoryStream GetHeaders(bool closing)
         {
-            if (response.HeadersSent)
-                return null;
-
             // SendHeaders works on shared headers
             lock (response.headers_lock)
             {
@@ -127,8 +118,7 @@ namespace SocketHttpListener.Net
                 }
                 catch { }
             }
-            else
-            {
+            else {
                 stream.Write(buffer, offset, count);
             }
         }
@@ -170,60 +160,6 @@ namespace SocketHttpListener.Net
             if (chunked)
                 InternalWrite(crlf, 0, 2);
         }
-
-        internal async Task InternalWriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        {
-            if (ignore_errors)
-            {
-                try
-                {
-                    await stream.WriteAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
-                }
-                catch { }
-            }
-            else
-            {
-                await stream.WriteAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        //public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-        //{
-        //    if (disposed)
-        //        throw new ObjectDisposedException(GetType().ToString());
-
-        //    byte[] bytes = null;
-        //    MemoryStream ms = GetHeaders(false);
-        //    bool chunked = response.SendChunked;
-        //    if (ms != null)
-        //    {
-        //        long start = ms.Position; // After the possible preamble for the encoding
-        //        ms.Position = ms.Length;
-        //        if (chunked)
-        //        {
-        //            bytes = GetChunkSizeBytes(count, false);
-        //            await ms.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-        //        }
-
-        //        int new_count = Math.Min(count, 16384 - (int)ms.Position + (int)start);
-        //        await ms.WriteAsync(buffer, offset, new_count, cancellationToken).ConfigureAwait(false);
-        //        count -= new_count;
-        //        offset += new_count;
-        //        await InternalWriteAsync(ms.GetBuffer(), (int)start, (int)(ms.Length - start), cancellationToken).ConfigureAwait(false);
-        //        ms.SetLength(0);
-        //        ms.Capacity = 0; // 'dispose' the buffer in ms.
-        //    }
-        //    else if (chunked)
-        //    {
-        //        bytes = GetChunkSizeBytes(count, false);
-        //        await InternalWriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-        //    }
-
-        //    if (count > 0)
-        //        await InternalWriteAsync(buffer, offset, count, cancellationToken);
-        //    if (chunked)
-        //        await InternalWriteAsync(crlf, 0, 2, cancellationToken).ConfigureAwait(false);
-        //}
 
         public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count,
                             AsyncCallback cback, object state)
@@ -272,8 +208,7 @@ namespace SocketHttpListener.Net
                 }
                 catch { }
             }
-            else
-            {
+            else {
                 stream.EndWrite(ares);
                 if (response.SendChunked)
                     stream.Write(crlf, 0, 2);

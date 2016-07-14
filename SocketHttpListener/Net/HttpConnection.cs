@@ -194,7 +194,7 @@ namespace SocketHttpListener.Net
                 if (chunked)
                 {
                     this.chunked = true;
-                    context.Response.SendChunked = true;
+                    //context.Response.SendChunked = true;
                     i_stream = new ChunkedInputStream(context, stream, buffer, position, length - position);
                 }
                 else
@@ -213,9 +213,9 @@ namespace SocketHttpListener.Net
                 HttpListener listener = context.Listener;
 
                 if (listener == null)
-                    return new ResponseStream(stream, context.Response, true, _logger, _connectionId);
+                    return new ResponseStream(stream, context.Response, true);
 
-                o_stream = new ResponseStream(stream, context.Response, listener.IgnoreWriteExceptions, _logger, _connectionId);
+                o_stream = new ResponseStream(stream, context.Response, listener.IgnoreWriteExceptions);
             }
             return o_stream;
         }

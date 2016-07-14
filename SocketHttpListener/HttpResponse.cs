@@ -107,14 +107,6 @@ namespace SocketHttpListener
             return res;
         }
 
-        internal static HttpResponse CreateUnauthorizedResponse(string challenge)
-        {
-            var res = new HttpResponse(HttpStatusCode.Unauthorized);
-            res.Headers["WWW-Authenticate"] = challenge;
-
-            return res;
-        }
-
         internal static HttpResponse CreateWebSocketResponse()
         {
             var res = new HttpResponse(HttpStatusCode.SwitchingProtocols);
@@ -124,25 +116,6 @@ namespace SocketHttpListener
             headers["Connection"] = "Upgrade";
 
             return res;
-        }
-
-        internal static HttpResponse Parse(string[] headerParts)
-        {
-            var statusLine = headerParts[0].Split(new[] { ' ' }, 3);
-            if (statusLine.Length != 3)
-                throw new ArgumentException("Invalid status line: " + headerParts[0]);
-
-            var headers = new WebHeaderCollection();
-            for (int i = 1; i < headerParts.Length; i++)
-                headers.SetInternal(headerParts[i]);
-
-            return new HttpResponse(
-              statusLine[1], statusLine[2], new Version(statusLine[0].Substring(5)), headers);
-        }
-
-        internal static HttpResponse Read(Stream stream, int millisecondsTimeout)
-        {
-            return Read<HttpResponse>(stream, Parse, millisecondsTimeout);
         }
 
         #endregion
