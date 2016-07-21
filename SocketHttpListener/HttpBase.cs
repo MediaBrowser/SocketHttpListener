@@ -4,7 +4,6 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace SocketHttpListener
 {
@@ -89,7 +88,7 @@ namespace SocketHttpListener
             return Encoding.GetEncoding(charset.Trim('"'));
         }
 
-        private static async Task<byte[]> ReadEntityBody(Stream stream, string length)
+        private static byte[] readEntityBody(Stream stream, string length)
         {
             long len;
             if (!Int64.TryParse(length, out len))
@@ -98,17 +97,11 @@ namespace SocketHttpListener
             if (len < 0)
                 throw new ArgumentOutOfRangeException("length", "Less than zero.");
 
-            if (len > 1024)
-            {
-                return await stream.ReadBytes(len, 1024).ConfigureAwait(false);
-            }
-
-            if (len > 0)
-            {
-                return await stream.ReadBytes((int)len).ConfigureAwait(false);
-            }
-
-            return null;
+            return len > 1024
+                   ? stream.ReadBytes(len, 1024)
+                   : len > 0
+                     ? stream.ReadBytes((int)len)
+                     : null;
         }
 
         private static string[] readHeaders(Stream stream, int maxLength)
@@ -141,6 +134,55 @@ namespace SocketHttpListener
                    .Replace(CrLf + " ", " ")
                    .Replace(CrLf + "\t", " ")
                    .Split(new[] { CrLf }, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        #endregion
+
+        #region Protected Methods
+
+        protected static T Read<T>(Stream stream, Func<string[], T> parser, int millisecondsTimeout)
+          where T : HttpBase
+        {
+            var timeout = false;
+            var timer = new Timer(
+              state =>
+              {
+                  timeout = true;
+                  stream.Close();
+              },
+              null,
+              millisecondsTimeout,
+              -1);
+
+            T http = null;
+            Exception exception = null;
+            try
+            {
+                http = parser(readHeaders(stream, _headersMaxLength));
+                var contentLen = http.Headers["Content-Length"];
+                if (contentLen != null && contentLen.Length > 0)
+                    http.EntityBodyData = readEntityBody(stream, contentLen);
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+            }
+            finally
+            {
+                timer.Change(-1, -1);
+                timer.Dispose();
+            }
+
+            var msg = timeout
+                      ? "A timeout has occurred while reading an HTTP request/response."
+                      : exception != null
+                        ? "An exception has occurred while reading an HTTP request/response."
+                        : null;
+
+            if (msg != null)
+                throw new WebSocketException(msg, exception);
+
+            return http;
         }
 
         #endregion

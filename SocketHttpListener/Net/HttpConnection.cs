@@ -8,7 +8,6 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Patterns.Logging;
 
 namespace SocketHttpListener.Net
@@ -32,8 +31,8 @@ namespace SocketHttpListener.Net
         bool context_bound;
         bool secure;
         int s_timeout = 300000; // 90k ms for first request, 15k ms from then on
-		Timer timer;
-		IPEndPoint local_ep;
+        Timer timer;
+        IPEndPoint local_ep;
         HttpListener last_listener;
         int[] client_cert_errors;
         X509Certificate cert;
@@ -440,8 +439,7 @@ namespace SocketHttpListener.Net
                     str = String.Format("<h1>{0}</h1>", description);
 
                 byte[] error = context.Response.ContentEncoding.GetBytes(str);
-                var task = response.CloseAsync(error, false);
-                Task.WaitAll(task);
+                response.Close(error, false);
             }
             catch
             {

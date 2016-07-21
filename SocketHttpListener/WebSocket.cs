@@ -7,7 +7,6 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using SocketHttpListener.Net;
 using SocketHttpListener.Net.WebSockets;
 
@@ -255,11 +254,11 @@ namespace SocketHttpListener
             _context = null;
         }
 
-        private async Task<bool> ConcatenateFragmentsInto(Stream dest)
+        private bool concatenateFragmentsInto(Stream dest)
         {
             while (true)
             {
-                var frame = await WebSocketFrame.Read(_stream, true).ConfigureAwait(false);
+                var frame = WebSocketFrame.Read(_stream, true);
                 if (frame.IsFinal)
                 {
                     /* FINAL */
@@ -302,7 +301,7 @@ namespace SocketHttpListener
                 }
 
                 // ?
-                return ProcessUnsupportedFrame(
+                return processUnsupportedFrame(
                   frame,
                   CloseStatusCode.IncorrectData,
                   "An incorrect data has been received while receiving fragmented data.");
@@ -453,23 +452,19 @@ namespace SocketHttpListener
                 close(code, reason ?? code.GetMessage(), false);
         }
 
-        private Task<bool> ProcessFragmentedFrame(WebSocketFrame frame)
+        private bool processFragmentedFrame(WebSocketFrame frame)
         {
-            // Not first fragment
-            if (frame.IsContinuation)
-            {
-                return Task.FromResult(true);
-            }
-
-            return ProcessFragments(frame);
+            return frame.IsContinuation // Not first fragment
+                   ? true
+                   : processFragments(frame);
         }
 
-        private async Task<bool> ProcessFragments(WebSocketFrame first)
+        private bool processFragments(WebSocketFrame first)
         {
             using (var buff = new MemoryStream())
             {
                 buff.WriteBytes(first.PayloadData.ApplicationData);
-                if (!await ConcatenateFragmentsInto(buff).ConfigureAwait(false))
+                if (!concatenateFragmentsInto(buff))
                     return false;
 
                 byte[] data;
@@ -533,22 +528,22 @@ namespace SocketHttpListener
             }
         }
 
-        private bool ProcessUnsupportedFrame(WebSocketFrame frame, CloseStatusCode code, string reason)
+        private bool processUnsupportedFrame(WebSocketFrame frame, CloseStatusCode code, string reason)
         {
             processException(new WebSocketException(code, reason), null);
 
             return false;
         }
 
-        private async Task<bool> ProcessWebSocketFrame(WebSocketFrame frame)
+        private bool processWebSocketFrame(WebSocketFrame frame)
         {
             return frame.IsCompressed && _compression == CompressionMethod.None
-                   ? ProcessUnsupportedFrame(
+                   ? processUnsupportedFrame(
                        frame,
                        CloseStatusCode.IncorrectData,
                        "A compressed data has been received without available decompression method.")
                    : frame.IsFragmented
-                     ? (await ProcessFragmentedFrame(frame).ConfigureAwait(false))
+                     ? processFragmentedFrame(frame)
                      : frame.IsData
                        ? processDataFrame(frame)
                        : frame.IsPing
@@ -557,7 +552,7 @@ namespace SocketHttpListener
                            ? processPongFrame(frame)
                            : frame.IsClose
                              ? processCloseFrame(frame)
-                             : ProcessUnsupportedFrame(frame, CloseStatusCode.PolicyViolation, null);
+                             : processUnsupportedFrame(frame, CloseStatusCode.PolicyViolation, null);
         }
 
         private bool send(Opcode opcode, Stream stream)
@@ -697,9 +692,9 @@ namespace SocketHttpListener
             receive = () => WebSocketFrame.ReadAsync(
               _stream,
               true,
-              async frame =>
+              frame =>
               {
-                  if (await ProcessWebSocketFrame(frame).ConfigureAwait(false) && _readyState != WebSocketState.Closed)
+                  if (processWebSocketFrame(frame) && _readyState != WebSocketState.Closed)
                   {
                       receive();
 
@@ -730,6 +725,66 @@ namespace SocketHttpListener
             receive();
         }
 
+        // As client
+        private bool validateSecWebSocketAcceptHeader(string value)
+        {
+            // This is causing disconnections from Java WebSocket
+            return true;
+            //return value != null && value == CreateResponseKey(_base64Key);
+        }
+
+        // As client
+        private bool validateSecWebSocketExtensionsHeader(string value)
+        {
+            var compress = _compression != CompressionMethod.None;
+            if (value == null || value.Length == 0)
+            {
+                if (compress)
+                    _compression = CompressionMethod.None;
+
+                return true;
+            }
+
+            if (!compress)
+                return false;
+
+            foreach (var e in value.SplitHeaderValue(','))
+            {
+                var ext = e.Trim();
+                if (ext.IsCompressionExtension(_compression))
+                {
+                    if (!ext.Contains("server_no_context_takeover"))
+                    {
+                        error("The server hasn't sent back 'server_no_context_takeover'.");
+                        return false;
+                    }
+
+                    ////if (!ext.Contains("client_no_context_takeover"))
+                    ////    _logger.Warn("The server hasn't sent back 'client_no_context_takeover'.");
+
+                    var method = _compression.ToExtensionString();
+                    var invalid = ext.SplitHeaderValue(';').Contains(
+                      t =>
+                      {
+                          t = t.Trim();
+                          return t != method &&
+                                 t != "server_no_context_takeover" &&
+                                 t != "client_no_context_takeover";
+                      });
+
+                    if (invalid)
+                        return false;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            _extensions = value;
+            return true;
+        }
+
         // As server
         private bool validateSecWebSocketKeyHeader(string value)
         {
@@ -740,11 +795,31 @@ namespace SocketHttpListener
             return true;
         }
 
+        // As client
+        private bool validateSecWebSocketProtocolHeader(string value)
+        {
+            if (value == null)
+                return _protocols == null;
+
+            if (_protocols == null || !_protocols.Contains(protocol => protocol == value))
+                return false;
+
+            _protocol = value;
+            return true;
+        }
+
         // As server
         private bool validateSecWebSocketVersionClientHeader(string value)
         {
             return true;
             //return value != null && value == _version;
+        }
+
+        // As client
+        private bool validateSecWebSocketVersionServerHeader(string value)
+        {
+            return true;
+            //return value == null || value == _version;
         }
 
         private bool writeBytes(byte[] data)

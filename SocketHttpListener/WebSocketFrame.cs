@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace SocketHttpListener
 {
@@ -453,7 +452,7 @@ Extended Payload Length: {7}
               payload);
         }
 
-        private static async Task<WebSocketFrame> Read(byte[] header, Stream stream, bool unmask)
+        private static WebSocketFrame read(byte[] header, Stream stream, bool unmask)
         {
             /* Header */
 
@@ -505,7 +504,7 @@ Extended Payload Length: {7}
                          ? 2
                          : 8;
 
-            var extPayloadLen = size > 0 ? await stream.ReadBytes(size).ConfigureAwait(false) : new byte[0];
+            var extPayloadLen = size > 0 ? stream.ReadBytes(size) : new byte[0];
             if (size > 0 && extPayloadLen.Length != size)
                 throw new WebSocketException(
                   "The 'Extended Payload Length' of a frame cannot be read from the data source.");
@@ -515,7 +514,7 @@ Extended Payload Length: {7}
             /* Masking Key */
 
             var masked = mask == Mask.Mask;
-            var maskingKey = masked ? await stream.ReadBytes(4).ConfigureAwait(false) : new byte[0];
+            var maskingKey = masked ? stream.ReadBytes(4) : new byte[0];
             if (masked && maskingKey.Length != 4)
                 throw new WebSocketException(
                   "The 'Masking Key' of a frame cannot be read from the data source.");
@@ -540,8 +539,8 @@ Extended Payload Length: {7}
                       "The length of 'Payload Data' of a frame is greater than the allowable length.");
 
                 data = payloadLen > 126
-                       ? await stream.ReadBytes((long)len, 1024).ConfigureAwait(false)
-                       : await stream.ReadBytes((int)len).ConfigureAwait(false);
+                       ? stream.ReadBytes((long)len, 1024)
+                       : stream.ReadBytes((int)len);
 
                 if (data.LongLength != (long)len)
                     throw new WebSocketException(
@@ -605,14 +604,19 @@ Extended Payload Length: {7}
             return new WebSocketFrame(fin, opcode, mask, new PayloadData(data), compressed);
         }
 
-        internal static async Task<WebSocketFrame> Read(Stream stream, bool unmask)
+        internal static WebSocketFrame Read(Stream stream)
         {
-            var header = await stream.ReadBytes(2).ConfigureAwait(false);
+            return Read(stream, true);
+        }
+
+        internal static WebSocketFrame Read(Stream stream, bool unmask)
+        {
+            var header = stream.ReadBytes(2);
             if (header.Length != 2)
                 throw new WebSocketException(
                   "The header part of a frame cannot be read from the data source.");
 
-            return await Read(header, stream, unmask).ConfigureAwait(false);
+            return read(header, stream, unmask);
         }
 
         internal static void ReadAsync(
@@ -621,20 +625,21 @@ Extended Payload Length: {7}
             ReadAsync(stream, true, completed, error);
         }
 
-        internal static void ReadAsync(Stream stream, bool unmask, Action<WebSocketFrame> completed, Action<Exception> error)
+        internal static void ReadAsync(
+          Stream stream, bool unmask, Action<WebSocketFrame> completed, Action<Exception> error)
         {
             stream.ReadBytesAsync(
               2,
-             async header =>
-               {
-                   if (header.Length != 2)
-                       throw new WebSocketException(
-                         "The header part of a frame cannot be read from the data source.");
+              header =>
+              {
+                  if (header.Length != 2)
+                      throw new WebSocketException(
+                        "The header part of a frame cannot be read from the data source.");
 
-                   var frame = await Read(header, stream, unmask).ConfigureAwait(false);
-                   if (completed != null)
-                       completed(frame);
-               },
+                  var frame = read(header, stream, unmask);
+                  if (completed != null)
+                      completed(frame);
+              },
               error);
         }
 
