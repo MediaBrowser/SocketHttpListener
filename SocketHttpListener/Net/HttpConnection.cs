@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Patterns.Logging;
 
 namespace SocketHttpListener.Net
@@ -439,7 +440,8 @@ namespace SocketHttpListener.Net
                     str = String.Format("<h1>{0}</h1>", description);
 
                 byte[] error = context.Response.ContentEncoding.GetBytes(str);
-                response.Close(error, false);
+                var task = response.CloseAsync(error, false);
+                Task.WaitAll(task);
             }
             catch
             {

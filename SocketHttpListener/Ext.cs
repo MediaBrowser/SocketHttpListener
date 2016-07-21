@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using CookieCollection = SocketHttpListener.Net.CookieCollection;
 using HttpListenerResponse = SocketHttpListener.Net.HttpListenerResponse;
 using HttpStatusCode = SocketHttpListener.Net.HttpStatusCode;
@@ -90,15 +91,15 @@ namespace SocketHttpListener
       }
     }
 
-    private static byte [] readBytes (this Stream stream, byte [] buffer, int offset, int length)
+    private static async Task<byte[]> ReadBytes (this Stream stream, byte [] buffer, int offset, int length)
     {
-      var len = stream.Read (buffer, offset, length);
+      var len = await stream.ReadAsync (buffer, offset, length).ConfigureAwait(false);
       if (len < 1)
         return buffer.SubArray (0, offset);
 
       var tmp = 0;
       while (len < length) {
-        tmp = stream.Read (buffer, offset + len, length - len);
+        tmp = await stream.ReadAsync(buffer, offset + len, length - len).ConfigureAwait(false);
         if (tmp < 1)
           break;
 
@@ -110,10 +111,9 @@ namespace SocketHttpListener
              : buffer;
     }
 
-    private static bool readBytes (
-      this Stream stream, byte [] buffer, int offset, int length, Stream dest)
+    private static async Task<bool> ReadBytes (this Stream stream, byte [] buffer, int offset, int length, Stream dest)
     {
-      var bytes = stream.readBytes (buffer, offset, length);
+      var bytes = await stream.ReadBytes(buffer, offset, length).ConfigureAwait(false);
       var len = bytes.Length;
       dest.Write (bytes, 0, len);
 
@@ -421,12 +421,12 @@ namespace SocketHttpListener
              : String.Format ("\"{0}\"", value.Replace ("\"", "\\\""));
     }
 
-    internal static byte [] ReadBytes (this Stream stream, int length)
+    internal static Task<byte[]> ReadBytes (this Stream stream, int length)
     {
-      return stream.readBytes (new byte [length], 0, length);
+      return stream.ReadBytes (new byte [length], 0, length);
     }
 
-    internal static byte [] ReadBytes (this Stream stream, long length, int bufferLength)
+    internal static async Task<byte[]> ReadBytes (this Stream stream, long length, int bufferLength)
     {
       using (var result = new MemoryStream ()) {
         var count = length / bufferLength;
@@ -435,14 +435,14 @@ namespace SocketHttpListener
         var buffer = new byte [bufferLength];
         var end = false;
         for (long i = 0; i < count; i++) {
-          if (!stream.readBytes (buffer, 0, bufferLength, result)) {
+          if (!await stream.ReadBytes(buffer, 0, bufferLength, result).ConfigureAwait(false)) {
             end = true;
             break;
           }
         }
 
         if (!end && rem > 0)
-          stream.readBytes (new byte [rem], 0, rem, result);
+          await stream.ReadBytes (new byte [rem], 0, rem, result).ConfigureAwait(false);
 
         result.Close ();
         return result.ToArray ();
@@ -457,13 +457,13 @@ namespace SocketHttpListener
         buffer,
         0,
         length,
-        ar => {
+        async ar => {
           try {
             var len = stream.EndRead (ar);
             var bytes = len < 1
                       ? new byte [0]
                       : len < length
-                        ? stream.readBytes (buffer, len, length - len)
+                        ? await stream.ReadBytes (buffer, len, length - len).ConfigureAwait(false)
                         : buffer;
 
             if (completed != null)

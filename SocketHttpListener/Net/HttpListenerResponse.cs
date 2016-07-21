@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using Patterns.Logging;
 
 namespace SocketHttpListener.Net
@@ -341,7 +342,7 @@ namespace SocketHttpListener.Net
             Close(false);
         }
 
-        public void Close(byte[] responseEntity, bool willBlock)
+        public async Task CloseAsync(byte[] responseEntity, bool willBlock)
         {
             if (disposed)
                 return;
@@ -351,7 +352,7 @@ namespace SocketHttpListener.Net
 
             //TODO: if willBlock -> BeginWrite + Close ?
             ContentLength64 = responseEntity.Length;
-            OutputStream.Write(responseEntity, 0, (int)content_length);
+            await OutputStream.WriteAsync(responseEntity, 0, (int)content_length).ConfigureAwait(false);
             Close(false);
         }
 
