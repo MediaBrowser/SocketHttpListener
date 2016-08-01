@@ -62,23 +62,33 @@ namespace SocketHttpListener.Net
                 byte[] bytes = null;
                 MemoryStream ms = GetHeaders(true);
                 bool chunked = response.SendChunked;
-                if (ms != null)
+                if (stream.CanWrite)
                 {
-                    long start = ms.Position;
-                    if (chunked && !trailer_sent)
+                    try
                     {
-                        bytes = GetChunkSizeBytes(0, true);
-                        ms.Position = ms.Length;
-                        ms.Write(bytes, 0, bytes.Length);
+                        if (ms != null)
+                        {
+                            long start = ms.Position;
+                            if (chunked && !trailer_sent)
+                            {
+                                bytes = GetChunkSizeBytes(0, true);
+                                ms.Position = ms.Length;
+                                ms.Write(bytes, 0, bytes.Length);
+                            }
+                            InternalWrite(ms.GetBuffer(), (int)start, (int)(ms.Length - start));
+                            trailer_sent = true;
+                        }
+                        else if (chunked && !trailer_sent)
+                        {
+                            bytes = GetChunkSizeBytes(0, true);
+                            InternalWrite(bytes, 0, bytes.Length);
+                            trailer_sent = true;
+                        }
                     }
-                    InternalWrite(ms.GetBuffer(), (int)start, (int)(ms.Length - start));
-                    trailer_sent = true;
-                }
-                else if (chunked && !trailer_sent)
-                {
-                    bytes = GetChunkSizeBytes(0, true);
-                    InternalWrite(bytes, 0, bytes.Length);
-                    trailer_sent = true;
+                    catch (IOException ex)
+                    {
+                        // Ignore error due to connection reset by peer
+                    }
                 }
                 response.Close();
             }
