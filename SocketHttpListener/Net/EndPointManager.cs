@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using Patterns.Logging;
 
 namespace SocketHttpListener.Net
@@ -68,9 +69,25 @@ namespace SocketHttpListener.Net
                 return true;
             }
 
-            return false;
-            //var type = typeof(Socket);
-            //return type.GetProperty("DualMode") != null;
+            return GetMonoVersion() >= new Version(4, 4);
+        }
+
+        private static Version GetMonoVersion()
+        {
+            Type type = Type.GetType("Mono.Runtime");
+            if (type != null)
+            {
+                MethodInfo displayName = type.GetMethod("GetDisplayName", BindingFlags.NonPublic | BindingFlags.Static);
+                var displayNameValue = displayName.Invoke(null, null).ToString().Trim().Split(' ')[0];
+
+                Version version;
+                if (Version.TryParse(displayNameValue, out version))
+                {
+                    return version;
+                }
+            }
+
+            return new Version(1, 0);
         }
 
         private static IPAddress GetIpAnyAddress()
