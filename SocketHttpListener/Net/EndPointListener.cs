@@ -52,11 +52,24 @@ namespace SocketHttpListener.Net
 
         private void CreateSocket()
         {
-            sock = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
             if (_enableDualMode)
             {
-                EnableDualMode(sock);
+                _logger.Info("Enabling DualMode socket");
+
+                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                {
+                    sock = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                    EnableDualMode(sock);
+                }
+                else
+                {
+                    sock = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                }
+            }
+            else
+            {
+                _logger.Info("Enabling non-DualMode socket");
+                sock = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             }
 
             sock.Bind(endpoint);
