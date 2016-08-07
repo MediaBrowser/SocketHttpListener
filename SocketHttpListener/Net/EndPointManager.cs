@@ -69,7 +69,8 @@ namespace SocketHttpListener.Net
                 return true;
             }
 
-            return GetMonoVersion() >= new Version(4, 4);
+            return false;
+            //return GetMonoVersion() >= new Version(4, 4);
         }
 
         private static Version GetMonoVersion()
