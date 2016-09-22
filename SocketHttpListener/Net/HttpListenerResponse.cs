@@ -494,7 +494,7 @@ namespace SocketHttpListener.Net
                 writer.Flush();
             }
 
-            int preamble = (encoding.CodePage == 65001) ? 3 : encoding.GetPreamble().Length;
+            int preamble = encoding.GetPreamble().Length;
             if (output_stream == null)
                 output_stream = context.Connection.GetResponseStream();
 
