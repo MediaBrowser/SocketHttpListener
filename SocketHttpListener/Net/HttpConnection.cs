@@ -49,6 +49,8 @@ namespace SocketHttpListener.Net
             this.epl = epl;
             this.secure = secure;
             this.cert = cert;
+            sock.ReceiveTimeout = s_timeout;
+            sock.SendTimeout = s_timeout;
             if (secure == false)
             {
                 stream = new NetworkStream(sock, false);
