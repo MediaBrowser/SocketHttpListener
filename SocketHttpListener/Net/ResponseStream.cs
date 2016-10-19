@@ -171,6 +171,7 @@ namespace SocketHttpListener.Net
                 InternalWrite(crlf, 0, 2);
         }
 
+        // TODO: sending headers is not async, BeginWrite can block until socket timeout
         public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count,
                             AsyncCallback cback, object state)
         {

@@ -159,7 +159,7 @@ namespace SocketHttpListener.Net
             if (!Uri.TryCreate(base_uri + path, UriKind.Absolute, out url))
             {
                 context.ErrorMessage = WebUtility.HtmlEncode("Invalid url: " + base_uri + path);
-                return; return;
+                return;
             }
 
             CreateQueryString(url.Query);
@@ -391,7 +391,7 @@ namespace SocketHttpListener.Net
         }
 
         // returns true is the stream could be reused.
-        internal bool FlushInput()
+        internal bool FlushInput(TimeSpan timeout)
         {
             if (!HasEntityBody)
                 return true;
@@ -403,13 +403,14 @@ namespace SocketHttpListener.Net
             byte[] bytes = new byte[length];
             while (true)
             {
-                // TODO: test if MS has a timeout when doing this
                 try
                 {
-                    IAsyncResult ares = InputStream.BeginRead(bytes, 0, length, null, null);
-                    if (!ares.IsCompleted && !ares.AsyncWaitHandle.WaitOne(1000))
+                    Task<int> readTask = InputStream.ReadAsync(bytes, 0, length);
+                    if (!readTask.Wait(timeout))
                         return false;
-                    if (InputStream.EndRead(ares) <= 0)
+
+                    int bytesRead = readTask.Result;
+                    if (bytesRead <= 0)
                         return true;
                 }
                 catch (ObjectDisposedException e)
