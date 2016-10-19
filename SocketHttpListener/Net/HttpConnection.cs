@@ -30,8 +30,7 @@ namespace SocketHttpListener.Net
         int reuses;
         bool context_bound;
         bool secure;
-        int s_timeout = 300000; // 90k ms for first request, 15k ms from then on
-        Timer timer;
+        ResumableTimer timer;
         IPEndPoint local_ep;
         HttpListener last_listener;
         int[] client_cert_errors;
@@ -49,6 +48,7 @@ namespace SocketHttpListener.Net
             this.epl = epl;
             this.secure = secure;
             this.cert = cert;
+            this.SetSocketTimeout(sock);
             if (secure == false)
             {
                 stream = new NetworkStream(sock, false);
@@ -72,8 +72,28 @@ namespace SocketHttpListener.Net
                 ssl_stream.AuthenticateAsServer(cert);
                 stream = ssl_stream;
             }
-            timer = new Timer(OnTimeout, null, Timeout.Infinite, Timeout.Infinite);
+            timer = new ResumableTimer(OnTimeout);
             Init();
+        }
+
+        void SetSocketTimeout(Socket sock)
+        {
+            // Socket timeout should be >= the largest applicable http listener timeout, and 
+            // Certainly > 0.
+            HttpListenerTimeoutManager mgr = this.epl.Listener.TimeoutManager;
+
+            TimeSpan readTimeout = TimeSpan.FromMilliseconds(50);
+            if (mgr.EntityBody > readTimeout)
+                readTimeout = mgr.EntityBody;
+            if (mgr.HeaderWait > readTimeout)
+                readTimeout = mgr.HeaderWait;
+
+            TimeSpan writeTimeout = TimeSpan.FromMilliseconds(50);
+            if (mgr.DrainEntityBody > writeTimeout)
+                writeTimeout = mgr.DrainEntityBody;
+
+            sock.ReceiveTimeout = (int)readTimeout.TotalMilliseconds;
+            sock.SendTimeout = (int)writeTimeout.TotalMilliseconds;
         }
 
         public Stream Stream
@@ -161,12 +181,13 @@ namespace SocketHttpListener.Net
             {
                 //if (reuses == 1)
                 //    s_timeout = 15000;
-                timer.Change(s_timeout, Timeout.Infinite);
+
+                timer.Start(this.epl.Listener.TimeoutManager.IdleConnection);
                 stream.BeginRead(buffer, 0, BufferSize, onread_cb, this);
             }
             catch
             {
-                timer.Change(Timeout.Infinite, Timeout.Infinite);
+                timer.Stop();
                 CloseSocket();
                 Unbind();
             }
@@ -215,7 +236,7 @@ namespace SocketHttpListener.Net
 
         void OnReadInternal(IAsyncResult ares)
         {
-            timer.Change(Timeout.Infinite, Timeout.Infinite);
+            timer.Stop();
             int nread = -1;
             try
             {
@@ -275,6 +296,7 @@ namespace SocketHttpListener.Net
             }
             try
             {
+                timer.Start(this.epl.Listener.TimeoutManager.HeaderWait);
                 stream.BeginRead(buffer, 0, BufferSize, onread_cb, this);
             }
             catch (IOException ex)
@@ -513,7 +535,7 @@ namespace SocketHttpListener.Net
 				}
 				*/
 
-                if (!force_close && context.Request.FlushInput())
+                if (!force_close && context.Request.FlushInput(this.epl.Listener.TimeoutManager.EntityBody))
                 {
                     if (chunked && context.Response.ForceCloseChunked == false)
                     {
@@ -525,6 +547,7 @@ namespace SocketHttpListener.Net
                         return;
                     }
 
+                    // BUG: isn't this exactly the same code that is in the if() block above?
                     reuses++;
                     Unbind();
                     Init();
