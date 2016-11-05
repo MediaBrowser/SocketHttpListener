@@ -72,7 +72,6 @@
     <Compile Include="Net\HttpStreamAsyncResult.cs" />
     <Compile Include="Net\HttpVersion.cs" />
     <Compile Include="Net\ListenerPrefix.cs" />
-    <Compile Include="Net\NetworkCredential.cs" />
     <Compile Include="Net\RequestStream.cs" />
     <Compile Include="Net\ResponseStream.cs" />
     <Compile Include="Net\WebHeaderCollection.cs" />

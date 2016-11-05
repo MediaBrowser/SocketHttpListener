@@ -30,7 +30,6 @@ namespace SocketHttpListener
         private CompressionMethod _compression;
         private WebSocketContext _context;
         private CookieCollection _cookies;
-        private NetworkCredential _credentials;
         private string _extensions;
         private AutoResetEvent _exitReceiving;
         private object _forConn;
@@ -46,7 +45,6 @@ namespace SocketHttpListener
         private bool _preAuth;
         private string _protocol;
         private string[] _protocols;
-        private NetworkCredential _proxyCredentials;
         private Uri _proxyUri;
         private volatile WebSocketState _readyState;
         private AutoResetEvent _receivePong;
