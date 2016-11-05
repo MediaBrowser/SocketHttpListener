@@ -2,8 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Security;
-using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -24,8 +22,6 @@ namespace SocketHttpListener
         #region Private Fields
 
         private string _base64Key;
-        private RemoteCertificateValidationCallback
-                                        _certValidationCallback;
         private Action _closeContext;
         private CompressionMethod _compression;
         private WebSocketContext _context;
@@ -50,7 +46,6 @@ namespace SocketHttpListener
         private AutoResetEvent _receivePong;
         private bool _secure;
         private Stream _stream;
-        private TcpClient _tcpClient;
         private Uri _uri;
         private const string _version = "13";
 
