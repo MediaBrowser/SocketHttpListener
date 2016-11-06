@@ -11,7 +11,7 @@ namespace SocketHttpListener.Net
     sealed class EndPointManager
     {
         // Dictionary<IPAddress, Dictionary<int, EndPointListener>>
-        static Hashtable ip_to_endpoints = new Hashtable();
+        static Dictionary<IPAddress, Dictionary<int, EndPointListener>> ip_to_endpoints = new Dictionary<IPAddress, Dictionary<int, EndPointListener>>();
 
         private EndPointManager()
         {
@@ -117,14 +117,10 @@ namespace SocketHttpListener.Net
                     addr = GetIpAnyAddress();
                 }
             }
-            Hashtable p = null;  // Dictionary<int, EndPointListener>
-            if (ip_to_endpoints.ContainsKey(addr))
+            Dictionary<int, EndPointListener> p = null;  // Dictionary<int, EndPointListener>
+            if (!ip_to_endpoints.TryGetValue(addr, out p))
             {
-                p = (Hashtable)ip_to_endpoints[addr];
-            }
-            else
-            {
-                p = new Hashtable();
+                p = new Dictionary<int, EndPointListener>();
                 ip_to_endpoints[addr] = p;
             }
 
@@ -147,12 +143,14 @@ namespace SocketHttpListener.Net
             lock (ip_to_endpoints)
             {
                 // Dictionary<int, EndPointListener> p
-                Hashtable p = null;
-                p = (Hashtable)ip_to_endpoints[ep.Address];
-                p.Remove(ep.Port);
-                if (p.Count == 0)
+                Dictionary<int, EndPointListener> p;
+                if (ip_to_endpoints.TryGetValue(ep.Address, out p))
                 {
-                    ip_to_endpoints.Remove(ep.Address);
+                    p.Remove(ep.Port);
+                    if (p.Count == 0)
+                    {
+                        ip_to_endpoints.Remove(ep.Address);
+                    }
                 }
                 epl.Close();
             }

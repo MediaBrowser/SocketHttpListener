@@ -1,6 +1,7 @@
 // TODO: Logging.
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using Patterns.Logging;
 using System.Security.Cryptography.X509Certificates;
 using System.IO;
@@ -19,8 +20,8 @@ namespace SocketHttpListener.Net
         bool listening;
         bool disposed;
 
-        Hashtable registry;   // Dictionary<HttpListenerContext,HttpListenerContext> 
-        Hashtable connections;
+        Dictionary<HttpListenerContext, HttpListenerContext> registry;   // Dictionary<HttpListenerContext,HttpListenerContext> 
+        Dictionary<HttpConnection, HttpConnection> connections;
         private ILogger _logger;
         private X509Certificate2 _certificate;
 
@@ -35,8 +36,8 @@ namespace SocketHttpListener.Net
         {
             _logger = logger;
             prefixes = new HttpListenerPrefixCollection(logger, this);
-            registry = new Hashtable();
-            connections = Hashtable.Synchronized(new Hashtable());
+            registry = new Dictionary<HttpListenerContext, HttpListenerContext>();
+            connections = new Dictionary<HttpConnection, HttpConnection>();
             auth_schemes = AuthenticationSchemes.Anonymous;
         }
 
@@ -231,7 +232,7 @@ namespace SocketHttpListener.Net
                         all[i].Connection.Close(true);
                 }
 
-                lock (connections.SyncRoot)
+                lock (connections)
                 {
                     ICollection keys = connections.Keys;
                     var conns = new HttpConnection[keys.Count];
@@ -302,12 +303,18 @@ namespace SocketHttpListener.Net
 
         internal void AddConnection(HttpConnection cnc)
         {
-            connections[cnc] = cnc;
+            lock (connections)
+            {
+                connections[cnc] = cnc;
+            }
         }
 
         internal void RemoveConnection(HttpConnection cnc)
         {
-            connections.Remove(cnc);
+            lock (connections)
+            {
+                connections.Remove(cnc);
+            }
         }
     }
 }

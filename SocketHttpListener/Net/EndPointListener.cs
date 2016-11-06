@@ -15,9 +15,9 @@ namespace SocketHttpListener.Net
         HttpListener listener;
         IPEndPoint endpoint;
         Socket sock;
-        Hashtable prefixes;  // Dictionary <ListenerPrefix, HttpListener>
-        ArrayList unhandled; // List<ListenerPrefix> unhandled; host = '*'
-        ArrayList all;       // List<ListenerPrefix> all;  host = '+'
+        Dictionary<ListenerPrefix,HttpListener> prefixes;  // Dictionary <ListenerPrefix, HttpListener>
+        List<ListenerPrefix> unhandled; // List<ListenerPrefix> unhandled; host = '*'
+        List<ListenerPrefix> all;       // List<ListenerPrefix> all;  host = '+'
         X509Certificate cert;
         bool secure;
         Dictionary<HttpConnection, HttpConnection> unregistered;
@@ -36,7 +36,7 @@ namespace SocketHttpListener.Net
             _enableDualMode = Equals(addr, IPAddress.IPv6Any);
             endpoint = new IPEndPoint(addr, port);
 
-            prefixes = new Hashtable();
+            prefixes = new Dictionary<ListenerPrefix, HttpListener>();
             unregistered = new Dictionary<HttpConnection, HttpConnection>();
 
             CreateSocket();
@@ -245,7 +245,7 @@ namespace SocketHttpListener.Net
 
             if (host != null && host != "")
             {
-                Hashtable p_ro = prefixes;
+                var p_ro = prefixes;
                 foreach (ListenerPrefix p in p_ro.Keys)
                 {
                     string ppath = p.Path;
@@ -266,7 +266,7 @@ namespace SocketHttpListener.Net
                     return best_match;
             }
 
-            ArrayList list = unhandled;
+            List<ListenerPrefix> list = unhandled;
             best_match = MatchFromList(host, path, list, out prefix);
             if (path != path_slash && best_match == null)
                 best_match = MatchFromList(host, path_slash, list, out prefix);
@@ -283,7 +283,7 @@ namespace SocketHttpListener.Net
             return null;
         }
 
-        HttpListener MatchFromList(string host, string path, ArrayList list, out ListenerPrefix prefix)
+        HttpListener MatchFromList(string host, string path, List<ListenerPrefix> list, out ListenerPrefix prefix)
         {
             prefix = null;
             if (list == null)
@@ -309,7 +309,7 @@ namespace SocketHttpListener.Net
             return best_match;
         }
 
-        void AddSpecial(ArrayList coll, ListenerPrefix prefix)
+        void AddSpecial(List<ListenerPrefix> coll, ListenerPrefix prefix)
         {
             if (coll == null)
                 return;
@@ -322,7 +322,7 @@ namespace SocketHttpListener.Net
             coll.Add(prefix);
         }
 
-        bool RemoveSpecial(ArrayList coll, ListenerPrefix prefix)
+        bool RemoveSpecial(List<ListenerPrefix> coll, ListenerPrefix prefix)
         {
             if (coll == null)
                 return false;
@@ -345,7 +345,7 @@ namespace SocketHttpListener.Net
             if (prefixes.Count > 0)
                 return;
 
-            ArrayList list = unhandled;
+            List<ListenerPrefix> list = unhandled;
             if (list != null && list.Count > 0)
                 return;
 
@@ -375,14 +375,14 @@ namespace SocketHttpListener.Net
 
         public void AddPrefix(ListenerPrefix prefix, HttpListener listener)
         {
-            ArrayList current;
-            ArrayList future;
+            List<ListenerPrefix> current;
+            List<ListenerPrefix> future;
             if (prefix.Host == "*")
             {
                 do
                 {
                     current = unhandled;
-                    future = (current != null) ? (ArrayList)current.Clone() : new ArrayList();
+                    future = (current != null) ? current.ToList() : new List<ListenerPrefix>();
                     prefix.Listener = listener;
                     AddSpecial(future, prefix);
                 } while (Interlocked.CompareExchange(ref unhandled, future, current) != current);
@@ -394,14 +394,15 @@ namespace SocketHttpListener.Net
                 do
                 {
                     current = all;
-                    future = (current != null) ? (ArrayList)current.Clone() : new ArrayList();
+                    future = (current != null) ? current.ToList() : new List<ListenerPrefix>();
                     prefix.Listener = listener;
                     AddSpecial(future, prefix);
                 } while (Interlocked.CompareExchange(ref all, future, current) != current);
                 return;
             }
 
-            Hashtable prefs, p2;
+            Dictionary<ListenerPrefix, HttpListener> prefs;
+            Dictionary<ListenerPrefix, HttpListener> p2;
             do
             {
                 prefs = prefixes;
@@ -412,21 +413,21 @@ namespace SocketHttpListener.Net
                         throw new System.Net.HttpListenerException(400, "There's another listener for " + prefix);
                     return;
                 }
-                p2 = (Hashtable)prefs.Clone();
+                p2 = new Dictionary<ListenerPrefix, HttpListener>(prefs);
                 p2[prefix] = listener;
             } while (Interlocked.CompareExchange(ref prefixes, p2, prefs) != prefs);
         }
 
         public void RemovePrefix(ListenerPrefix prefix, HttpListener listener)
         {
-            ArrayList current;
-            ArrayList future;
+            List<ListenerPrefix> current;
+            List<ListenerPrefix> future;
             if (prefix.Host == "*")
             {
                 do
                 {
                     current = unhandled;
-                    future = (current != null) ? (ArrayList)current.Clone() : new ArrayList();
+                    future = (current != null) ? current.ToList() : new List<ListenerPrefix>();
                     if (!RemoveSpecial(future, prefix))
                         break; // Prefix not found
                 } while (Interlocked.CompareExchange(ref unhandled, future, current) != current);
@@ -439,7 +440,7 @@ namespace SocketHttpListener.Net
                 do
                 {
                     current = all;
-                    future = (current != null) ? (ArrayList)current.Clone() : new ArrayList();
+                    future = (current != null) ? current.ToList() : new List<ListenerPrefix>();
                     if (!RemoveSpecial(future, prefix))
                         break; // Prefix not found
                 } while (Interlocked.CompareExchange(ref all, future, current) != current);
@@ -447,14 +448,15 @@ namespace SocketHttpListener.Net
                 return;
             }
 
-            Hashtable prefs, p2;
+            Dictionary<ListenerPrefix, HttpListener> prefs;
+            Dictionary<ListenerPrefix, HttpListener> p2;
             do
             {
                 prefs = prefixes;
                 if (!prefs.ContainsKey(prefix))
                     break;
 
-                p2 = (Hashtable)prefs.Clone();
+                p2 = new Dictionary<ListenerPrefix, HttpListener>(prefs);
                 p2.Remove(prefix);
             } while (Interlocked.CompareExchange(ref prefixes, p2, prefs) != prefs);
             CheckIfRemove();
