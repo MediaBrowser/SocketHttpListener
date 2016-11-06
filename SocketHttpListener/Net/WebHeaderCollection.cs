@@ -117,11 +117,6 @@ namespace SocketHttpListener.Net
 
         }
 
-        internal WebHeaderCollection(HeaderInfo headerRestriction)
-        {
-            this.headerRestriction = headerRestriction;
-        }
-
         // Methods
 
         public void Add(string header)
@@ -390,62 +385,6 @@ namespace SocketHttpListener.Net
             return base.GetKey(index);
         }
 
-        public void Add(HttpRequestHeader header, string value)
-        {
-            Add(RequestHeaderToString(header), value);
-        }
-
-        public void Remove(HttpRequestHeader header)
-        {
-            Remove(RequestHeaderToString(header));
-        }
-
-        public void Set(HttpRequestHeader header, string value)
-        {
-            Set(RequestHeaderToString(header), value);
-        }
-
-        public void Add(HttpResponseHeader header, string value)
-        {
-            Add(ResponseHeaderToString(header), value);
-        }
-
-        public void Remove(HttpResponseHeader header)
-        {
-            Remove(ResponseHeaderToString(header));
-        }
-
-        public void Set(HttpResponseHeader header, string value)
-        {
-            Set(ResponseHeaderToString(header), value);
-        }
-
-        public string this[HttpRequestHeader header]
-        {
-            get
-            {
-                return Get(RequestHeaderToString(header));
-            }
-
-            set
-            {
-                Set(header, value);
-            }
-        }
-
-        public string this[HttpResponseHeader header]
-        {
-            get
-            {
-                return Get(ResponseHeaderToString(header));
-            }
-
-            set
-            {
-                Set(header, value);
-            }
-        }
-
         public override void Clear()
         {
             base.Clear();
@@ -488,189 +427,7 @@ namespace SocketHttpListener.Net
             }
         }
 
-        internal void RemoveAndAdd(string name, string value)
-        {
-            if (value == null)
-                value = String.Empty;
-            else
-                value = value.Trim();
-
-            base.Remove(name);
-            base.Set(name, value);
-        }
-
-        internal void RemoveInternal(string name)
-        {
-            if (name == null)
-                throw new ArgumentNullException("name");
-            base.Remove(name);
-        }
-
         // Private Methods
-
-        string RequestHeaderToString(HttpRequestHeader value)
-        {
-            CheckHeaderConsistency(HeaderInfo.Request);
-
-            switch (value)
-            {
-                case HttpRequestHeader.CacheControl:
-                    return "Cache-Control";
-                case HttpRequestHeader.Connection:
-                    return "Connection";
-                case HttpRequestHeader.Date:
-                    return "Date";
-                case HttpRequestHeader.KeepAlive:
-                    return "Keep-Alive";
-                case HttpRequestHeader.Pragma:
-                    return "Pragma";
-                case HttpRequestHeader.Trailer:
-                    return "Trailer";
-                case HttpRequestHeader.TransferEncoding:
-                    return "Transfer-Encoding";
-                case HttpRequestHeader.Upgrade:
-                    return "Upgrade";
-                case HttpRequestHeader.Via:
-                    return "Via";
-                case HttpRequestHeader.Warning:
-                    return "Warning";
-                case HttpRequestHeader.Allow:
-                    return "Allow";
-                case HttpRequestHeader.ContentLength:
-                    return "Content-Length";
-                case HttpRequestHeader.ContentType:
-                    return "Content-Type";
-                case HttpRequestHeader.ContentEncoding:
-                    return "Content-Encoding";
-                case HttpRequestHeader.ContentLanguage:
-                    return "Content-Language";
-                case HttpRequestHeader.ContentLocation:
-                    return "Content-Location";
-                case HttpRequestHeader.ContentMd5:
-                    return "Content-MD5";
-                case HttpRequestHeader.ContentRange:
-                    return "Content-Range";
-                case HttpRequestHeader.Expires:
-                    return "Expires";
-                case HttpRequestHeader.LastModified:
-                    return "Last-Modified";
-                case HttpRequestHeader.Accept:
-                    return "Accept";
-                case HttpRequestHeader.AcceptCharset:
-                    return "Accept-Charset";
-                case HttpRequestHeader.AcceptEncoding:
-                    return "Accept-Encoding";
-                case HttpRequestHeader.AcceptLanguage:
-                    return "accept-language";
-                case HttpRequestHeader.Authorization:
-                    return "Authorization";
-                case HttpRequestHeader.Cookie:
-                    return "Cookie";
-                case HttpRequestHeader.Expect:
-                    return "Expect";
-                case HttpRequestHeader.From:
-                    return "From";
-                case HttpRequestHeader.Host:
-                    return "Host";
-                case HttpRequestHeader.IfMatch:
-                    return "If-Match";
-                case HttpRequestHeader.IfModifiedSince:
-                    return "If-Modified-Since";
-                case HttpRequestHeader.IfNoneMatch:
-                    return "If-None-Match";
-                case HttpRequestHeader.IfRange:
-                    return "If-Range";
-                case HttpRequestHeader.IfUnmodifiedSince:
-                    return "If-Unmodified-Since";
-                case HttpRequestHeader.MaxForwards:
-                    return "Max-Forwards";
-                case HttpRequestHeader.ProxyAuthorization:
-                    return "Proxy-Authorization";
-                case HttpRequestHeader.Referer:
-                    return "Referer";
-                case HttpRequestHeader.Range:
-                    return "Range";
-                case HttpRequestHeader.Te:
-                    return "TE";
-                case HttpRequestHeader.Translate:
-                    return "Translate";
-                case HttpRequestHeader.UserAgent:
-                    return "User-Agent";
-                default:
-                    throw new InvalidOperationException();
-            }
-        }
-
-        string ResponseHeaderToString(HttpResponseHeader value)
-        {
-            CheckHeaderConsistency(HeaderInfo.Response);
-
-            switch (value)
-            {
-                case HttpResponseHeader.CacheControl:
-                    return "Cache-Control";
-                case HttpResponseHeader.Connection:
-                    return "Connection";
-                case HttpResponseHeader.Date:
-                    return "Date";
-                case HttpResponseHeader.KeepAlive:
-                    return "Keep-Alive";
-                case HttpResponseHeader.Pragma:
-                    return "Pragma";
-                case HttpResponseHeader.Trailer:
-                    return "Trailer";
-                case HttpResponseHeader.TransferEncoding:
-                    return "Transfer-Encoding";
-                case HttpResponseHeader.Upgrade:
-                    return "Upgrade";
-                case HttpResponseHeader.Via:
-                    return "Via";
-                case HttpResponseHeader.Warning:
-                    return "Warning";
-                case HttpResponseHeader.Allow:
-                    return "Allow";
-                case HttpResponseHeader.ContentLength:
-                    return "Content-Length";
-                case HttpResponseHeader.ContentType:
-                    return "Content-Type";
-                case HttpResponseHeader.ContentEncoding:
-                    return "Content-Encoding";
-                case HttpResponseHeader.ContentLanguage:
-                    return "Content-Language";
-                case HttpResponseHeader.ContentLocation:
-                    return "Content-Location";
-                case HttpResponseHeader.ContentMd5:
-                    return "Content-MD5";
-                case HttpResponseHeader.ContentRange:
-                    return "Content-Range";
-                case HttpResponseHeader.Expires:
-                    return "Expires";
-                case HttpResponseHeader.LastModified:
-                    return "Last-Modified";
-                case HttpResponseHeader.AcceptRanges:
-                    return "Accept-Ranges";
-                case HttpResponseHeader.Age:
-                    return "Age";
-                case HttpResponseHeader.ETag:
-                    return "ETag";
-                case HttpResponseHeader.Location:
-                    return "Location";
-                case HttpResponseHeader.ProxyAuthenticate:
-                    return "Proxy-Authenticate";
-                case HttpResponseHeader.RetryAfter:
-                    return "Retry-After";
-                case HttpResponseHeader.Server:
-                    return "Server";
-                case HttpResponseHeader.SetCookie:
-                    return "Set-Cookie";
-                case HttpResponseHeader.Vary:
-                    return "Vary";
-                case HttpResponseHeader.WwwAuthenticate:
-                    return "WWW-Authenticate";
-                default:
-                    throw new InvalidOperationException();
-            }
-        }
 
         void CheckRestrictedHeader(string headerName)
         {
@@ -683,18 +440,6 @@ namespace SocketHttpListener.Net
 
             if ((info & headerRestriction.Value) != 0)
                 throw new ArgumentException("This header must be modified with the appropriate property.");
-        }
-
-        void CheckHeaderConsistency(HeaderInfo value)
-        {
-            if (!headerConsistency.HasValue)
-            {
-                headerConsistency = value;
-                return;
-            }
-
-            if ((headerConsistency & value) == 0)
-                throw new InvalidOperationException();
         }
 
         internal static bool IsMultiValue(string headerName)
