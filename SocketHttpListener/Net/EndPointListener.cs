@@ -184,9 +184,7 @@ namespace SocketHttpListener.Net
                     return;
                 }
 
-                var connectionId = Guid.NewGuid().ToString("N");
-
-                HttpConnection conn = new HttpConnection(_logger, accepted, listener, listener.secure, listener.cert, connectionId);
+                HttpConnection conn = new HttpConnection(_logger, accepted, listener, listener.secure, listener.cert);
                 //_logger.Debug("Adding unregistered connection to {0}. Id: {1}", accepted.RemoteEndPoint, connectionId);
                 lock (listener.unregistered)
                 {

@@ -39,11 +39,9 @@ namespace SocketHttpListener.Net
         SslStream ssl_stream;
 
         private ILogger _logger;
-        private readonly string _connectionId;
 
-        public HttpConnection(ILogger logger, Socket sock, EndPointListener epl, bool secure, X509Certificate cert, string connectionId)
+        public HttpConnection(ILogger logger, Socket sock, EndPointListener epl, bool secure, X509Certificate cert)
         {
-            _connectionId = connectionId;
             _logger = logger;
             this.sock = sock;
             this.epl = epl;
