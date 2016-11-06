@@ -54,7 +54,7 @@ namespace SocketHttpListener.Net
         }
 
 
-        public override void Close()
+        protected override void Dispose(bool disposing)
         {
             if (disposed == false)
             {
@@ -75,7 +75,7 @@ namespace SocketHttpListener.Net
                                 ms.Position = ms.Length;
                                 ms.Write(bytes, 0, bytes.Length);
                             }
-                            InternalWrite(ms.GetBuffer(), (int)start, (int)(ms.Length - start));
+                            InternalWrite(ms.ToArray(), (int)start, (int)(ms.Length - start));
                             trailer_sent = true;
                         }
                         else if (chunked && !trailer_sent)
@@ -92,6 +92,8 @@ namespace SocketHttpListener.Net
                 }
                 response.Close();
             }
+
+            base.Dispose(disposing);
         }
 
         MemoryStream GetHeaders(bool closing)
@@ -155,7 +157,7 @@ namespace SocketHttpListener.Net
                 ms.Write(buffer, offset, new_count);
                 count -= new_count;
                 offset += new_count;
-                InternalWrite(ms.GetBuffer(), (int)start, (int)(ms.Length - start));
+                InternalWrite(ms.ToArray(), (int)start, (int)(ms.Length - start));
                 ms.SetLength(0);
                 ms.Capacity = 0; // 'dispose' the buffer in ms.
             }
@@ -171,8 +173,7 @@ namespace SocketHttpListener.Net
                 InternalWrite(crlf, 0, 2);
         }
 
-        public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count,
-                            AsyncCallback cback, object state)
+        public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (disposed)
                 throw new ObjectDisposedException(GetType().ToString());
@@ -190,7 +191,7 @@ namespace SocketHttpListener.Net
                     ms.Write(bytes, 0, bytes.Length);
                 }
                 ms.Write(buffer, offset, count);
-                buffer = ms.GetBuffer();
+                buffer = ms.ToArray();
                 offset = (int)start;
                 count = (int)(ms.Position - start);
             }
@@ -200,46 +201,94 @@ namespace SocketHttpListener.Net
                 InternalWrite(bytes, 0, bytes.Length);
             }
 
-            return stream.BeginWrite(buffer, offset, count, cback, state);
-        }
-
-        public override void EndWrite(IAsyncResult ares)
-        {
-            if (disposed)
-                throw new ObjectDisposedException(GetType().ToString());
-
-            if (ignore_errors)
+            try
             {
-                try
+                if (count > 0)
                 {
-                    stream.EndWrite(ares);
-                    if (response.SendChunked)
-                        stream.Write(crlf, 0, 2);
+                    await stream.WriteAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
                 }
-                catch { }
-            }
-            else {
-                stream.EndWrite(ares);
+
                 if (response.SendChunked)
                     stream.Write(crlf, 0, 2);
             }
+            catch
+            {
+                if (!ignore_errors)
+                {
+                    throw;
+                }
+            }
         }
+
+        //public override IAsyncResult BeginWrite(byte[] buffer, int offset, int count,
+        //                    AsyncCallback cback, object state)
+        //{
+        //    if (disposed)
+        //        throw new ObjectDisposedException(GetType().ToString());
+
+        //    byte[] bytes = null;
+        //    MemoryStream ms = GetHeaders(false);
+        //    bool chunked = response.SendChunked;
+        //    if (ms != null)
+        //    {
+        //        long start = ms.Position;
+        //        ms.Position = ms.Length;
+        //        if (chunked)
+        //        {
+        //            bytes = GetChunkSizeBytes(count, false);
+        //            ms.Write(bytes, 0, bytes.Length);
+        //        }
+        //        ms.Write(buffer, offset, count);
+        //        buffer = ms.ToArray();
+        //        offset = (int)start;
+        //        count = (int)(ms.Position - start);
+        //    }
+        //    else if (chunked)
+        //    {
+        //        bytes = GetChunkSizeBytes(count, false);
+        //        InternalWrite(bytes, 0, bytes.Length);
+        //    }
+
+        //    return stream.BeginWrite(buffer, offset, count, cback, state);
+        //}
+
+        //public override void EndWrite(IAsyncResult ares)
+        //{
+        //    if (disposed)
+        //        throw new ObjectDisposedException(GetType().ToString());
+
+        //    if (ignore_errors)
+        //    {
+        //        try
+        //        {
+        //            stream.EndWrite(ares);
+        //            if (response.SendChunked)
+        //                stream.Write(crlf, 0, 2);
+        //        }
+        //        catch { }
+        //    }
+        //    else {
+        //        stream.EndWrite(ares);
+        //        if (response.SendChunked)
+        //            stream.Write(crlf, 0, 2);
+        //    }
+        //}
 
         public override int Read([In, Out] byte[] buffer, int offset, int count)
         {
             throw new NotSupportedException();
         }
 
-        public override IAsyncResult BeginRead(byte[] buffer, int offset, int count,
-                            AsyncCallback cback, object state)
-        {
-            throw new NotSupportedException();
-        }
+        //public override IAsyncResult BeginRead(byte[] buffer, int offset, int count,
+        //                    AsyncCallback cback, object state)
+        //{
+        //    throw new NotSupportedException();
+        //}
 
-        public override int EndRead(IAsyncResult ares)
-        {
-            throw new NotSupportedException();
-        }
+        //public override int EndRead(IAsyncResult ares)
+        //{
+        //    throw new NotSupportedException();
+        //}
 
         public override long Seek(long offset, SeekOrigin origin)
         {
