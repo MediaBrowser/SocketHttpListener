@@ -12,14 +12,6 @@ namespace SocketHttpListener.Net
 {
     public sealed class HttpListenerRequest
     {
-        class Context : TransportContext
-        {
-            public override ChannelBinding GetChannelBinding(ChannelBindingKind kind)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         string[] accept_types;
         Encoding content_encoding;
         long content_length;
@@ -639,14 +631,6 @@ namespace SocketHttpListener.Net
             get
             {
                 return null;
-            }
-        }
-
-        public TransportContext TransportContext
-        {
-            get
-            {
-                return new Context();
             }
         }
 
