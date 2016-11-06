@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using SocketHttpListener.Net;
 using HttpListenerResponse = SocketHttpListener.Net.HttpListenerResponse;
 using HttpStatusCode = SocketHttpListener.Net.HttpStatusCode;
@@ -381,34 +382,18 @@ namespace SocketHttpListener
             }
         }
 
-        internal static void ReadBytesAsync(
-          this Stream stream, int length, Action<byte[]> completed, Action<Exception> error)
+        internal static async Task<byte[]> ReadBytesAsync(this Stream stream, int length)
         {
             var buffer = new byte[length];
-            stream.BeginRead(
-              buffer,
-              0,
-              length,
-              ar => {
-                  try
-                  {
-                      var len = stream.EndRead(ar);
-                      var bytes = len < 1
-                          ? new byte[0]
-                          : len < length
-                            ? stream.readBytes(buffer, len, length - len)
-                            : buffer;
 
-                      if (completed != null)
-                          completed(bytes);
-                  }
-                  catch (Exception ex)
-                  {
-                      if (error != null)
-                          error(ex);
-                  }
-              },
-              null);
+            var len = await stream.ReadAsync(buffer, 0, length).ConfigureAwait(false);
+            var bytes = len < 1
+                ? new byte[0]
+                : len < length
+                  ? stream.readBytes(buffer, len, length - len)
+                  : buffer;
+
+            return bytes;
         }
 
         internal static string RemovePrefix(this string value, params string[] prefixes)

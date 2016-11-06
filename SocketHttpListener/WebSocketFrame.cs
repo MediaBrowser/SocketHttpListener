@@ -489,28 +489,27 @@ namespace SocketHttpListener
             return read(header, stream, unmask);
         }
 
-        internal static void ReadAsync(
-          Stream stream, Action<WebSocketFrame> completed, Action<Exception> error)
-        {
-            ReadAsync(stream, true, completed, error);
-        }
-
-        internal static void ReadAsync(
+        internal static async void ReadAsync(
           Stream stream, bool unmask, Action<WebSocketFrame> completed, Action<Exception> error)
         {
-            stream.ReadBytesAsync(
-              2,
-              header =>
-              {
-                  if (header.Length != 2)
-                      throw new WebSocketException(
-                        "The header part of a frame cannot be read from the data source.");
+            try
+            {
+                var header = await stream.ReadBytesAsync(2).ConfigureAwait(false);
+                if (header.Length != 2)
+                    throw new WebSocketException(
+                      "The header part of a frame cannot be read from the data source.");
 
-                  var frame = read(header, stream, unmask);
-                  if (completed != null)
-                      completed(frame);
-              },
-              error);
+                var frame = read(header, stream, unmask);
+                if (completed != null)
+                    completed(frame);
+            }
+            catch (Exception ex)
+            {
+                if (error != null)
+                {
+                    error(ex);
+                }
+            }
         }
 
         #endregion
