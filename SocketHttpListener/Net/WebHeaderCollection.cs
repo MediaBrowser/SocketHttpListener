@@ -9,9 +9,8 @@ using System.Text;
 
 namespace SocketHttpListener.Net
 {
-    [Serializable]
     [ComVisible(true)]
-    public class WebHeaderCollection : NameValueCollection, ISerializable
+    public class WebHeaderCollection : NameValueCollection
     {
         [Flags]
         internal enum HeaderInfo
@@ -87,34 +86,6 @@ namespace SocketHttpListener.Net
 				{ "Sec-WebSocket-Protocol", HeaderInfo.Request | HeaderInfo.Response | HeaderInfo. MultiValue },
 				{ "SecWebSocketVersion", HeaderInfo.Response | HeaderInfo. MultiValue }
 			};
-        }
-
-        // Constructors
-
-        public WebHeaderCollection()
-        {
-        }
-
-        protected WebHeaderCollection(SerializationInfo serializationInfo,
-                           StreamingContext streamingContext)
-        {
-            int count;
-
-            try
-            {
-                count = serializationInfo.GetInt32("Count");
-                for (int i = 0; i < count; i++)
-                    this.Add(serializationInfo.GetString(i.ToString()),
-                          serializationInfo.GetString((count + i).ToString()));
-            }
-            catch (SerializationException)
-            {
-                count = serializationInfo.GetInt32("count");
-                for (int i = 0; i < count; i++)
-                    this.Add(serializationInfo.GetString("k" + i),
-                          serializationInfo.GetString("v" + i));
-            }
-
         }
 
         // Methods
@@ -251,10 +222,6 @@ namespace SocketHttpListener.Net
             return (info & flag) != 0;
         }
 
-        public override void OnDeserialization(object sender)
-        {
-        }
-
         public override void Remove(string name)
         {
             if (name == null)
@@ -327,23 +294,6 @@ namespace SocketHttpListener.Net
                   .Append("\r\n");
 
             return sb.Append("\r\n").ToString();
-        }
-#if !TARGET_JVM
-        void ISerializable.GetObjectData(SerializationInfo serializationInfo,
-                          StreamingContext streamingContext)
-        {
-            GetObjectData(serializationInfo, streamingContext);
-        }
-#endif
-        public override void GetObjectData(SerializationInfo serializationInfo, StreamingContext streamingContext)
-        {
-            int count = base.Count;
-            serializationInfo.AddValue("Count", count);
-            for (int i = 0; i < count; i++)
-            {
-                serializationInfo.AddValue(i.ToString(), GetKey(i));
-                serializationInfo.AddValue((count + i).ToString(), Get(i));
-            }
         }
 
         public override string[] AllKeys
