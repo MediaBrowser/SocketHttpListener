@@ -490,37 +490,6 @@ namespace SocketHttpListener
             return true;
         }
 
-        // As server
-        private void processSecWebSocketExtensionsHeader(string value)
-        {
-            var buff = new StringBuilder(32);
-
-            var compress = false;
-            foreach (var extension in value.SplitHeaderValue(','))
-            {
-                var trimed = extension.Trim();
-                var unprefixed = trimed.RemovePrefix("x-webkit-");
-
-
-                if (!compress && unprefixed.IsCompressionExtension(CompressionMethod.Deflate))
-                {
-                    _compression = CompressionMethod.Deflate;
-                    var str = _compression.ToExtensionString(
-                      "client_no_context_takeover", "server_no_context_takeover");
-
-                    buff.AppendFormat("{0}, ", str);
-                    compress = true;
-                }
-            }
-
-            var len = buff.Length;
-            if (len > 0)
-            {
-                buff.Length = len - 2;
-                _extensions = buff.ToString();
-            }
-        }
-
         private bool processUnsupportedFrame(WebSocketFrame frame, CloseStatusCode code, string reason)
         {
             processException(new WebSocketException(code, reason), null);
@@ -718,66 +687,6 @@ namespace SocketHttpListener
             receive();
         }
 
-        // As client
-        private bool validateSecWebSocketAcceptHeader(string value)
-        {
-            // This is causing disconnections from Java WebSocket
-            return true;
-            //return value != null && value == CreateResponseKey(_base64Key);
-        }
-
-        // As client
-        private bool validateSecWebSocketExtensionsHeader(string value)
-        {
-            var compress = _compression != CompressionMethod.None;
-            if (value == null || value.Length == 0)
-            {
-                if (compress)
-                    _compression = CompressionMethod.None;
-
-                return true;
-            }
-
-            if (!compress)
-                return false;
-
-            foreach (var e in value.SplitHeaderValue(','))
-            {
-                var ext = e.Trim();
-                if (ext.IsCompressionExtension(_compression))
-                {
-                    if (!ext.Contains("server_no_context_takeover"))
-                    {
-                        error("The server hasn't sent back 'server_no_context_takeover'.");
-                        return false;
-                    }
-
-                    ////if (!ext.Contains("client_no_context_takeover"))
-                    ////    _logger.Warn("The server hasn't sent back 'client_no_context_takeover'.");
-
-                    var method = _compression.ToExtensionString();
-                    var invalid = ext.SplitHeaderValue(';').Contains(
-                      t =>
-                      {
-                          t = t.Trim();
-                          return t != method &&
-                                 t != "server_no_context_takeover" &&
-                                 t != "client_no_context_takeover";
-                      });
-
-                    if (invalid)
-                        return false;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            _extensions = value;
-            return true;
-        }
-
         // As server
         private bool validateSecWebSocketKeyHeader(string value)
         {
@@ -788,31 +697,11 @@ namespace SocketHttpListener
             return true;
         }
 
-        // As client
-        private bool validateSecWebSocketProtocolHeader(string value)
-        {
-            if (value == null)
-                return _protocols == null;
-
-            if (_protocols == null || !_protocols.Contains(protocol => protocol == value))
-                return false;
-
-            _protocol = value;
-            return true;
-        }
-
         // As server
         private bool validateSecWebSocketVersionClientHeader(string value)
         {
             return true;
             //return value != null && value == _version;
-        }
-
-        // As client
-        private bool validateSecWebSocketVersionServerHeader(string value)
-        {
-            return true;
-            //return value == null || value == _version;
         }
 
         private bool writeBytes(byte[] data)
