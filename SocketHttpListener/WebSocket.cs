@@ -221,13 +221,13 @@ namespace SocketHttpListener
             release();
             if (_receivePong != null)
             {
-                _receivePong.Close();
+                _receivePong.Dispose();
                 _receivePong = null;
             }
 
             if (_exitReceiving != null)
             {
-                _exitReceiving.Close();
+                _exitReceiving.Dispose();
                 _exitReceiving = null;
             }
 
@@ -468,7 +468,6 @@ namespace SocketHttpListener
                 }
                 else
                 {
-                    buff.Close();
                     data = buff.ToArray();
                 }
 

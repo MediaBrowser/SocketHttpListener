@@ -34,7 +34,7 @@ namespace SocketHttpListener
             using (var ds = new DeflateStream(output, CompressionMode.Compress, true))
             {
                 stream.CopyTo(ds);
-                ds.Close(); // "BFINAL" set to 1.
+                //ds.Close(); // "BFINAL" set to 1.
                 output.Position = 0;
 
                 return output;

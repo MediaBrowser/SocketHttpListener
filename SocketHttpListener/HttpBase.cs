@@ -44,7 +44,7 @@ namespace SocketHttpListener
         {
             get
             {
-                return EntityBodyData != null && EntityBodyData.LongLength > 0
+                return EntityBodyData != null && EntityBodyData.Length > 0
                        ? getEncoding(_headers["Content-Type"]).GetString(EntityBodyData)
                        : String.Empty;
             }

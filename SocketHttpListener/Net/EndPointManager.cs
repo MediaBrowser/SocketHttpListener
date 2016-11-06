@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
@@ -18,7 +19,7 @@ namespace SocketHttpListener.Net
 
         public static void AddListener(ILogger logger, HttpListener listener)
         {
-            ArrayList added = new ArrayList();
+            List<string> added = new List<string>();
             try
             {
                 lock (ip_to_endpoints)
