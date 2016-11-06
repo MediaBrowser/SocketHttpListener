@@ -30,8 +30,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Patterns.Logging">
-      <HintPath>..\packages\Patterns.Logging.1.0.0.2\lib\portable-net45+sl4+wp71+win8+wpa81\Patterns.Logging.dll</HintPath>
+    <Reference Include="Patterns.Logging, Version=1.0.6151.30227, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Patterns.Logging.1.0.0.6\lib\portable-net45+win8\Patterns.Logging.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -56,9 +57,7 @@
     <Compile Include="Net\AuthenticationSchemeSelector.cs" />
     <Compile Include="Net\ChunkedInputStream.cs" />
     <Compile Include="Net\ChunkStream.cs" />
-    <Compile Include="Net\Cookie.cs" />
-    <Compile Include="Net\CookieCollection.cs" />
-    <Compile Include="Net\CookieException.cs" />
+    <Compile Include="Net\CookieHelper.cs" />
     <Compile Include="Net\EndPointListener.cs" />
     <Compile Include="Net\EndPointManager.cs" />
     <Compile Include="Net\HttpConnection.cs" />

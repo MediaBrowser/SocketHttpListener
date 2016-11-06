@@ -48,7 +48,7 @@ namespace SocketHttpListener.Net
         bool sawCR;
         bool gotit;
         int trailerState;
-        ArrayList chunks;
+        List<Chunk> chunks;
 
         public ChunkStream(byte[] buffer, int offset, int size, WebHeaderCollection headers)
             : this(headers)
@@ -60,7 +60,7 @@ namespace SocketHttpListener.Net
         {
             this.headers = headers;
             saved = new StringBuilder();
-            chunks = new ArrayList();
+            chunks = new List<Chunk>();
             chunkSize = -1;
             totalWritten = 0;
         }
@@ -369,7 +369,8 @@ namespace SocketHttpListener.Net
 
         static void ThrowProtocolViolation(string message)
         {
-            WebException we = new WebException(message, null, WebExceptionStatus.ServerProtocolViolation, null);
+            WebException we = new WebException(message, null, WebExceptionStatus.UnknownError, null);
+            //WebException we = new WebException(message, null, WebExceptionStatus.ServerProtocolViolation, null);
             throw we;
         }
     }

@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Specialized;
 using System.IO;
+using System.Net;
 using System.Text;
-using SocketHttpListener.Net;
+using HttpStatusCode = SocketHttpListener.Net.HttpStatusCode;
+using HttpVersion = SocketHttpListener.Net.HttpVersion;
+using System.Linq;
 
 namespace SocketHttpListener
 {
@@ -128,8 +131,10 @@ namespace SocketHttpListener
                 return;
 
             var headers = Headers;
-            foreach (var cookie in cookies.Sorted)
-                headers.Add("Set-Cookie", cookie.ToClientString());
+            var sorted = cookies.OfType<Cookie>().OrderBy(i => i.Name).ToList();
+
+            foreach (var cookie in sorted)
+                headers.Add("Set-Cookie", cookie.ToString());
         }
 
         public override string ToString()

@@ -2,11 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
-using SocketHttpListener.Net;
 using SocketHttpListener.Net.WebSockets;
+using HttpStatusCode = SocketHttpListener.Net.HttpStatusCode;
 
 namespace SocketHttpListener
 {

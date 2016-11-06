@@ -483,7 +483,7 @@ namespace SocketHttpListener.Net
             if (cookies != null)
             {
                 foreach (Cookie cookie in cookies)
-                    headers.SetInternal("Set-Cookie", cookie.ToClientString());
+                    headers.SetInternal("Set-Cookie", cookie.ToString());
             }
 
             using (StreamWriter writer = new StreamWriter(ms, encoding, 256, true))
