@@ -303,82 +303,13 @@ namespace SocketHttpListener
 
         #region Private Methods
 
-        private static byte[] createMaskingKey()
+        private byte[] createMaskingKey()
         {
             var key = new byte[4];
             var rand = new Random();
             rand.NextBytes(key);
 
             return key;
-        }
-
-        private static string dump(WebSocketFrame frame)
-        {
-            var len = frame.Length;
-            var cnt = (long)(len / 4);
-            var rem = (int)(len % 4);
-
-            int cntDigit;
-            string cntFmt;
-            if (cnt < 10000)
-            {
-                cntDigit = 4;
-                cntFmt = "{0,4}";
-            }
-            else if (cnt < 0x010000)
-            {
-                cntDigit = 4;
-                cntFmt = "{0,4:X}";
-            }
-            else if (cnt < 0x0100000000)
-            {
-                cntDigit = 8;
-                cntFmt = "{0,8:X}";
-            }
-            else
-            {
-                cntDigit = 16;
-                cntFmt = "{0,16:X}";
-            }
-
-            var spFmt = String.Format("{{0,{0}}}", cntDigit);
-            var headerFmt = String.Format(
-      @"{0} 01234567 89ABCDEF 01234567 89ABCDEF
-{0}+--------+--------+--------+--------+\n", spFmt);
-            var lineFmt = String.Format("{0}|{{1,8}} {{2,8}} {{3,8}} {{4,8}}|\n", cntFmt);
-            var footerFmt = String.Format("{0}+--------+--------+--------+--------+", spFmt);
-
-            var output = new StringBuilder(64);
-            Func<Action<string, string, string, string>> linePrinter = () =>
-            {
-                long lineCnt = 0;
-                return (arg1, arg2, arg3, arg4) =>
-                  output.AppendFormat(lineFmt, ++lineCnt, arg1, arg2, arg3, arg4);
-            };
-
-            output.AppendFormat(headerFmt, String.Empty);
-
-            var printLine = linePrinter();
-            var frameAsBytes = frame.ToByteArray();
-            for (long i = 0; i <= cnt; i++)
-            {
-                var j = i * 4;
-                if (i < cnt)
-                    printLine(
-                      Convert.ToString(frameAsBytes[j], 2).PadLeft(8, '0'),
-                      Convert.ToString(frameAsBytes[j + 1], 2).PadLeft(8, '0'),
-                      Convert.ToString(frameAsBytes[j + 2], 2).PadLeft(8, '0'),
-                      Convert.ToString(frameAsBytes[j + 3], 2).PadLeft(8, '0'));
-                else if (rem > 0)
-                    printLine(
-                      Convert.ToString(frameAsBytes[j], 2).PadLeft(8, '0'),
-                      rem >= 2 ? Convert.ToString(frameAsBytes[j + 1], 2).PadLeft(8, '0') : String.Empty,
-                      rem == 3 ? Convert.ToString(frameAsBytes[j + 2], 2).PadLeft(8, '0') : String.Empty,
-                      String.Empty);
-            }
-
-            output.AppendFormat(footerFmt, String.Empty);
-            return output.ToString();
         }
 
         private static bool isControl(Opcode opcode)
@@ -389,67 +320,6 @@ namespace SocketHttpListener
         private static bool isData(Opcode opcode)
         {
             return opcode == Opcode.Text || opcode == Opcode.Binary;
-        }
-
-        private static string print(WebSocketFrame frame)
-        {
-            /* Opcode */
-
-            var opcode = frame._opcode.ToString();
-
-            /* Payload Length */
-
-            var payloadLen = frame._payloadLength;
-
-            /* Extended Payload Length */
-
-            var ext = frame._extPayloadLength;
-            var size = ext.Length;
-            var extPayloadLen = size == 2
-                                ? ext.ToUInt16(ByteOrder.Big).ToString()
-                                : size == 8
-                                  ? ext.ToUInt64(ByteOrder.Big).ToString()
-                                  : String.Empty;
-
-            /* Masking Key */
-
-            var masked = frame.IsMasked;
-            var maskingKey = masked ? BitConverter.ToString(frame._maskingKey) : String.Empty;
-
-            /* Payload Data */
-
-            var payload = payloadLen == 0
-                          ? String.Empty
-                          : size > 0
-                            ? String.Format("A {0} frame.", opcode.ToLower())
-                            : !masked && !frame.IsFragmented && frame.IsText
-                              ? Encoding.UTF8.GetString(frame._payloadData.ApplicationData)
-                              : frame._payloadData.ToString();
-
-            var fmt =
-      @"                    FIN: {0}
-                   RSV1: {1}
-                   RSV2: {2}
-                   RSV3: {3}
-                 Opcode: {4}
-                   MASK: {5}
-         Payload Length: {6}
-Extended Payload Length: {7}
-            Masking Key: {8}
-           Payload Data: {9}";
-
-            return String.Format(
-              fmt,
-              frame._fin,
-              frame._rsv1,
-              frame._rsv2,
-              frame._rsv3,
-              opcode,
-              frame._mask,
-              payloadLen,
-              extPayloadLen,
-              maskingKey,
-              payload);
         }
 
         private static WebSocketFrame read(byte[] header, Stream stream, bool unmask)
@@ -542,9 +412,9 @@ Extended Payload Length: {7}
                        ? stream.ReadBytes((long)len, 1024)
                        : stream.ReadBytes((int)len);
 
-                if (data.LongLength != (long)len)
-                    throw new WebSocketException(
-                      "The 'Payload Data' of a frame cannot be read from the data source.");
+                //if (data.LongLength != (long)len)
+                //    throw new WebSocketException(
+                //      "The 'Payload Data' of a frame cannot be read from the data source.");
             }
             else
             {
@@ -619,28 +489,27 @@ Extended Payload Length: {7}
             return read(header, stream, unmask);
         }
 
-        internal static void ReadAsync(
-          Stream stream, Action<WebSocketFrame> completed, Action<Exception> error)
-        {
-            ReadAsync(stream, true, completed, error);
-        }
-
-        internal static void ReadAsync(
+        internal static async void ReadAsync(
           Stream stream, bool unmask, Action<WebSocketFrame> completed, Action<Exception> error)
         {
-            stream.ReadBytesAsync(
-              2,
-              header =>
-              {
-                  if (header.Length != 2)
-                      throw new WebSocketException(
-                        "The header part of a frame cannot be read from the data source.");
+            try
+            {
+                var header = await stream.ReadBytesAsync(2).ConfigureAwait(false);
+                if (header.Length != 2)
+                    throw new WebSocketException(
+                      "The header part of a frame cannot be read from the data source.");
 
-                  var frame = read(header, stream, unmask);
-                  if (completed != null)
-                      completed(frame);
-              },
-              error);
+                var frame = read(header, stream, unmask);
+                if (completed != null)
+                    completed(frame);
+            }
+            catch (Exception ex)
+            {
+                if (error != null)
+                {
+                    error(ex);
+                }
+            }
         }
 
         #endregion
@@ -655,14 +524,7 @@ Extended Payload Length: {7}
 
         public void Print(bool dumped)
         {
-            Console.WriteLine(dumped ? dump(this) : print(this));
-        }
-
-        public string PrintToString(bool dumped)
-        {
-            return dumped
-                   ? dump(this)
-                   : print(this);
+            //Console.WriteLine(dumped ? dump(this) : print(this));
         }
 
         public byte[] ToByteArray()
@@ -693,7 +555,6 @@ Extended Payload Length: {7}
                         buff.WriteBytes(payload);
                 }
 
-                buff.Close();
                 return buff.ToArray();
             }
         }

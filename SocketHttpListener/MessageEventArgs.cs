@@ -26,9 +26,6 @@ namespace SocketHttpListener
 
     internal MessageEventArgs (Opcode opcode, byte[] data)
     {
-      if ((ulong) data.LongLength > PayloadData.MaxLength)
-        throw new WebSocketException (CloseStatusCode.TooBig);
-
       _opcode = opcode;
       _rawData = data;
       _data = convertToString (opcode, data);
@@ -87,10 +84,10 @@ namespace SocketHttpListener
 
     private static string convertToString (Opcode opcode, byte [] data)
     {
-      return data.LongLength == 0
+      return data.Length == 0
              ? String.Empty
              : opcode == Opcode.Text
-               ? Encoding.UTF8.GetString (data)
+               ? Encoding.UTF8.GetString (data, 0, data.Length)
                : opcode.ToString ();
     }
 

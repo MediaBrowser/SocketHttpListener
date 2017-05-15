@@ -5,7 +5,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Text;
-using CookieCollection = SocketHttpListener.Net.CookieCollection;
+using System.Threading.Tasks;
+using SocketHttpListener.Net;
 using HttpListenerResponse = SocketHttpListener.Net.HttpListenerResponse;
 using HttpStatusCode = SocketHttpListener.Net.HttpStatusCode;
 
@@ -24,18 +25,6 @@ namespace SocketHttpListener
 
         #region Private Methods
 
-        private static byte[] compress(this byte[] value)
-        {
-            if (value.LongLength == 0)
-                //return new Byte [] { 0x00, 0x00, 0x00, 0xff, 0xff };
-                return value;
-
-            using (var input = new MemoryStream(value))
-            {
-                return input.compressToArray();
-            }
-        }
-
         private static MemoryStream compress(this Stream stream)
         {
             var output = new MemoryStream();
@@ -46,25 +35,16 @@ namespace SocketHttpListener
             using (var ds = new DeflateStream(output, CompressionMode.Compress, true))
             {
                 stream.CopyTo(ds);
-                ds.Close(); // "BFINAL" set to 1.
+                //ds.Close(); // "BFINAL" set to 1.
                 output.Position = 0;
 
                 return output;
             }
         }
 
-        private static byte[] compressToArray(this Stream stream)
-        {
-            using (var comp = stream.compress())
-            {
-                comp.Close();
-                return comp.ToArray();
-            }
-        }
-
         private static byte[] decompress(this byte[] value)
         {
-            if (value.LongLength == 0)
+            if (value.Length == 0)
                 return value;
 
             using (var input = new MemoryStream(value))
@@ -91,7 +71,6 @@ namespace SocketHttpListener
         {
             using (var decomp = stream.decompress())
             {
-                decomp.Close();
                 return decomp.ToArray();
             }
         }
@@ -143,7 +122,6 @@ namespace SocketHttpListener
                     buffer.Write(tmp, 0, tmp.Length);
                 }
 
-                buffer.Close();
                 return buffer.ToArray();
             }
         }
@@ -182,35 +160,10 @@ namespace SocketHttpListener
                    : null;
         }
 
-        internal static string CheckIfValidSendData(this FileInfo file)
-        {
-            return file == null
-                   ? "'file' must not be null."
-                   : null;
-        }
-
         internal static string CheckIfValidSendData(this string data)
         {
             return data == null
                    ? "'data' must not be null."
-                   : null;
-        }
-
-        internal static string CheckIfValidServicePath(this string servicePath)
-        {
-            return servicePath == null || servicePath.Length == 0
-                   ? "'servicePath' must not be null or empty."
-                   : servicePath[0] != '/'
-                     ? "'servicePath' not absolute path."
-                     : servicePath.IndexOfAny(new[] { '?', '#' }) != -1
-                       ? "'servicePath' must not contain either or both query and fragment components."
-                       : null;
-        }
-
-        internal static string CheckIfValidSessionID(this string id)
-        {
-            return id == null || id.Length == 0
-                   ? "'id' must not be null or empty."
                    : null;
         }
 
@@ -220,25 +173,11 @@ namespace SocketHttpListener
             response.OutputStream.Close();
         }
 
-        internal static byte[] Compress(this byte[] value, CompressionMethod method)
-        {
-            return method == CompressionMethod.Deflate
-                   ? value.compress()
-                   : value;
-        }
-
         internal static Stream Compress(this Stream stream, CompressionMethod method)
         {
             return method == CompressionMethod.Deflate
                    ? stream.compress()
                    : stream;
-        }
-
-        internal static byte[] CompressToArray(this Stream stream, CompressionMethod method)
-        {
-            return method == CompressionMethod.Deflate
-                   ? stream.compressToArray()
-                   : stream.ToByteArray();
         }
 
         internal static bool Contains<T>(this IEnumerable<T> source, Func<T, bool> condition)
@@ -248,27 +187,6 @@ namespace SocketHttpListener
                     return true;
 
             return false;
-        }
-
-        internal static bool ContainsTwice(this string[] values)
-        {
-            var len = values.Length;
-
-            Func<int, bool> contains = null;
-            contains = index => {
-                if (index < len - 1)
-                {
-                    for (var i = index + 1; i < len; i++)
-                        if (values[i] == values[index])
-                            return true;
-
-                    return contains(++index);
-                }
-
-                return false;
-            };
-
-            return contains(0);
         }
 
         internal static void CopyTo(this Stream src, Stream dest, bool setDefaultPosition)
@@ -460,39 +378,22 @@ namespace SocketHttpListener
                 if (!end && rem > 0)
                     stream.readBytes(new byte[rem], 0, rem, result);
 
-                result.Close();
                 return result.ToArray();
             }
         }
 
-        internal static void ReadBytesAsync(
-          this Stream stream, int length, Action<byte[]> completed, Action<Exception> error)
+        internal static async Task<byte[]> ReadBytesAsync(this Stream stream, int length)
         {
             var buffer = new byte[length];
-            stream.BeginRead(
-              buffer,
-              0,
-              length,
-              ar => {
-                  try
-                  {
-                      var len = stream.EndRead(ar);
-                      var bytes = len < 1
-                          ? new byte[0]
-                          : len < length
-                            ? stream.readBytes(buffer, len, length - len)
-                            : buffer;
 
-                      if (completed != null)
-                          completed(bytes);
-                  }
-                  catch (Exception ex)
-                  {
-                      if (error != null)
-                          error(ex);
-                  }
-              },
-              null);
+            var len = await stream.ReadAsync(buffer, 0, length).ConfigureAwait(false);
+            var bytes = len < 1
+                ? new byte[0]
+                : len < length
+                  ? stream.readBytes(buffer, len, length - len)
+                  : buffer;
+
+            return bytes;
         }
 
         internal static string RemovePrefix(this string value, params string[] prefixes)
@@ -576,7 +477,6 @@ namespace SocketHttpListener
             {
                 stream.Position = 0;
                 stream.CopyTo(output);
-                output.Close();
 
                 return output.ToArray();
             }
@@ -600,15 +500,6 @@ namespace SocketHttpListener
             return bytes;
         }
 
-        internal static CompressionMethod ToCompressionMethod(this string value)
-        {
-            foreach (CompressionMethod method in Enum.GetValues(typeof(CompressionMethod)))
-                if (method.ToExtensionString() == value)
-                    return method;
-
-            return CompressionMethod.None;
-        }
-
         internal static string ToExtensionString(
           this CompressionMethod method, params string[] parameters)
         {
@@ -620,19 +511,6 @@ namespace SocketHttpListener
                 return m;
 
             return String.Format("{0}; {1}", m, parameters.ToString("; "));
-        }
-
-        internal static System.Net.IPAddress ToIPAddress(this string hostNameOrAddress)
-        {
-            try
-            {
-                var addrs = System.Net.Dns.GetHostAddresses(hostNameOrAddress);
-                return addrs[0];
-            }
-            catch
-            {
-                return null;
-            }
         }
 
         internal static List<TSource> ToList<TSource>(this IEnumerable<TSource> source)
@@ -804,7 +682,7 @@ namespace SocketHttpListener
         /// Gets the collection of the HTTP cookies from the specified HTTP <paramref name="headers"/>.
         /// </summary>
         /// <returns>
-        /// A <see cref="Net.CookieCollection"/> that receives a collection of the HTTP cookies.
+        /// A <see cref="CookieCollection"/> that receives a collection of the HTTP cookies.
         /// </returns>
         /// <param name="headers">
         /// A <see cref="NameValueCollection"/> that contains a collection of the HTTP headers.
@@ -818,7 +696,7 @@ namespace SocketHttpListener
             var name = response ? "Set-Cookie" : "Cookie";
             return headers == null || !headers.Contains(name)
                    ? new CookieCollection()
-                   : CookieCollection.Parse(headers[name], response);
+                   : CookieHelper.Parse(headers[name], response);
         }
 
         /// <summary>
