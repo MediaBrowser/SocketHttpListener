@@ -10,6 +10,9 @@ namespace SocketHttpListener.Test
 {
     internal static class Utility
     {        
+        internal const string SITE_HOSTNAME = "localhost";
+        internal const int SITE_PORT = 12345;
+        internal const string SITE_PREFIX = "/Testing";
         internal const string SITE_URL = "localhost:12345/Testing/";
         internal const string TEXT_TO_WRITE = "TESTING12345";
 

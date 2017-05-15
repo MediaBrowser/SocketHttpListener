@@ -173,6 +173,7 @@ namespace SocketHttpListener.Net
                 InternalWrite(crlf, 0, 2);
         }
 
+        // TODO: sending headers is not async, BeginWrite can block until socket timeout
         public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             if (disposed)
