@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
     <metadata>
         <id>SocketHttpListener</id>
-        <version>1.0.0.40</version>
+        <version>1.0.0.44</version>
         <title>SocketHttpListener</title>
         <authors>Emby Team</authors>
         <owners>ebr,Luke,scottisafool</owners>
@@ -12,7 +12,7 @@
         <description>A standalone HttpListener with support for SSL, WebSockets and Mono.</description>
         <copyright>Copyright © Emby 2013</copyright>
         <dependencies>
-            <dependency id="Patterns.Logging" version="1.0.0.2" />
+            <dependency id="Patterns.Logging" version="1.0.0.6" />
         </dependencies>
     </metadata>
     <files>
