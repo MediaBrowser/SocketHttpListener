@@ -45,10 +45,6 @@ namespace SocketHttpListener
 
     public PayloadData (byte [] extensionData, byte [] applicationData, bool masked)
     {
-      if ((ulong) extensionData.LongLength + (ulong) applicationData.LongLength > MaxLength)
-        throw new ArgumentOutOfRangeException (
-          "The length of 'extensionData' plus 'applicationData' is greater than MaxLength.");
-
       _extensionData = extensionData;
       _applicationData = applicationData;
       _masked = masked;

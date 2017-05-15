@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Net;
 using System.Security.Principal;
 
 namespace SocketHttpListener.Net.WebSockets
@@ -30,7 +31,7 @@ namespace SocketHttpListener.Net.WebSockets
     /// Gets the HTTP cookies included in the request.
     /// </summary>
     /// <value>
-    /// A <see cref="Net.CookieCollection"/> that contains the cookies.
+    /// A <see cref="System.Net.CookieCollection"/> that contains the cookies.
     /// </value>
     public abstract CookieCollection CookieCollection { get; }
 
