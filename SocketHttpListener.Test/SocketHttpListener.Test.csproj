@@ -63,6 +63,8 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="HttpListenerTimeoutTest.cs" />
+    <Compile Include="ResumableTimerTest.cs" />
     <Compile Include="Utility.cs" />
     <Compile Include="HttpConnectionTest.cs" />
     <Compile Include="LoggerFactory.cs" />

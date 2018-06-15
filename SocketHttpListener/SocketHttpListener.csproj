@@ -67,12 +67,14 @@
     <Compile Include="Net\HttpListenerPrefixCollection.cs" />
     <Compile Include="Net\HttpListenerRequest.cs" />
     <Compile Include="Net\HttpListenerResponse.cs" />
+    <Compile Include="Net\HttpListenerTimeoutManager.cs" />
     <Compile Include="Net\HttpStatusCode.cs" />
     <Compile Include="Net\HttpStreamAsyncResult.cs" />
     <Compile Include="Net\HttpVersion.cs" />
     <Compile Include="Net\ListenerPrefix.cs" />
     <Compile Include="Net\RequestStream.cs" />
     <Compile Include="Net\ResponseStream.cs" />
+    <Compile Include="Net\ResumableTimer.cs" />
     <Compile Include="Net\WebHeaderCollection.cs" />
     <Compile Include="Net\WebSockets\HttpListenerWebSocketContext.cs" />
     <Compile Include="Net\WebSockets\WebSocketContext.cs" />

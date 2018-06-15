@@ -84,6 +84,15 @@ namespace SocketHttpListener.Net
             }
         }
 
+        HttpListenerTimeoutManager timeoutManager = new HttpListenerTimeoutManager();
+        public HttpListenerTimeoutManager TimeoutManager 
+        { 
+            get
+            {
+                return this.timeoutManager;
+            }
+        }
+
         public bool IgnoreWriteExceptions
         {
             get { return ignore_write_exceptions; }
